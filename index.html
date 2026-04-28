@@ -519,12 +519,13 @@ function renderActiveEx(){
     let sh='';
     ex.sets.forEach((s,si)=>{
       const isDropSet=s.note==='drop';
+      const isFailure=s.note==='failure';
       sh+=`<div class="set-row" id="setrow-${ei}-${si}">
-        <span class="set-num" style="${isDropSet?'color:var(--amber);':''}">${isDropSet?'Drop':'Set'} ${si+1}</span>
+        <span class="set-num" style="${isDropSet?'color:var(--amber);':isFailure?'color:var(--red);':''}">${isDropSet?'Drop':isFailure?'Fail':'Set'} ${si+1}</span>
         <input class="set-inp" type="number" inputmode="decimal" placeholder="lbs" value="${s.w}" onchange="updSet(${ei},${si},'w',this.value)" style="width:62px;">
         <span class="set-x">×</span>
-        <input class="set-inp" type="number" inputmode="numeric" placeholder="${s.note==='failure'?'fail':'reps'}" value="${s.r}" onchange="updSet(${ei},${si},'r',this.value)" style="width:52px;">
-        <button class="set-check ${s.done?'done':''}" onclick="togSet(${ei},${si},this)">${s.done?'✓':''}</button>
+        <input class="set-inp" type="number" inputmode="numeric" placeholder="${isFailure?'reps':'reps'}" value="${s.r}" onchange="updSet(${ei},${si},'r',this.value)" style="width:52px;">
+        <button onclick="removeSet(${ei},${si})" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0 4px;flex-shrink:0;">×</button>
       </div>`;
     });
     d.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
@@ -546,19 +547,16 @@ function renderActiveEx(){
 }
 
 function updSet(ei,si,f,v){if(activeEx[ei]&&activeEx[ei].sets[si])activeEx[ei].sets[si][f]=v;}
-function togSet(ei,si,btn){
-  if(!activeEx[ei]||!activeEx[ei].sets[si])return;
-  activeEx[ei].sets[si].done=!activeEx[ei].sets[si].done;
-  btn.classList.toggle('done');btn.textContent=activeEx[ei].sets[si].done?'✓':'';
-}
+function removeSet(ei,si){if(activeEx[ei].sets.length<=1){alert('At least one set required. Remove the exercise instead.');return;}activeEx[ei].sets.splice(si,1);renderActiveEx();}
 function addSet(ei){activeEx[ei].sets.push({w:'',r:'',note:'',done:false});renderActiveEx();}
 function addDropSet(ei){activeEx[ei].sets.push({w:'',r:'',note:'drop',done:false});renderActiveEx();}
-function addFailureSet(ei){activeEx[ei].sets.push({w:'',r:'failure',note:'failure',done:false});renderActiveEx();}
+function addFailureSet(ei){activeEx[ei].sets.push({w:'',r:'',note:'failure',done:false});renderActiveEx();}
 function removeEx(ei){activeEx.splice(ei,1);renderActiveEx();}
 
 function finishSession(){
   if(!activeEx.length){alert('Add at least one exercise first!');return;}
-  workouts.unshift({id:Date.now(),name:curSess.name,date:curSess.date,exercises:activeEx.map(e=>({name:e.name,muscle:e.muscle,sets:e.sets}))});
+  if(!confirm('Save this workout?\n\nYou can edit or delete it from History anytime.'))return;
+  workouts.unshift({id:Date.now(),name:curSess.name,date:curSess.date,exercises:JSON.parse(JSON.stringify(activeEx))});
   sv('gt_workouts',workouts);
   const btn=document.getElementById('finish-btn');
   btn.textContent='Saved! 💪';btn.style.background='#2a9e6a';
@@ -643,33 +641,135 @@ function renderHistory(){
   const el=document.getElementById('hist-list');
   if(!workouts.length){el.innerHTML='<div class="empty">No workouts logged yet.<br>Start your first session!</div>';return;}
   el.innerHTML='';
-  workouts.slice(0,60).forEach(w=>{
+  workouts.slice(0,60).forEach((w,wi)=>{
     const totalSets=w.exercises.reduce((a,e)=>a+(e.sets||[]).length,0);
     const d=document.createElement('div');d.className='hist-item';
     d.innerHTML=`<div class="hist-date">${fmtDate(w.date)}</div>
       <div class="hist-name">${w.name}</div>
       <div class="hist-exes">${w.exercises.map(e=>e.name).join(' · ')}</div>
-      <div class="hist-meta">${w.exercises.length} exercises · ${totalSets} sets · tap to see weights</div>`;
-    d.onclick=()=>openSessionDetail(w);
+      <div class="hist-meta">${w.exercises.length} exercises · ${totalSets} sets · <span style="color:var(--green);">tap to edit or view</span></div>`;
+    d.onclick=()=>openEditSession(wi);
     el.appendChild(d);
   });
 }
 
-function openSessionDetail(sess){
+let editingWorkoutIdx=null;
+let editingExercises=[];
+
+function openEditSession(wi){
+  editingWorkoutIdx=wi;
+  const sess=workouts[wi];
+  editingExercises=JSON.parse(JSON.stringify(sess.exercises));
   document.getElementById('modal-ex-name').textContent=sess.name;
-  document.getElementById('modal-ex-sub').textContent=fmtDate(sess.date);
+  document.getElementById('modal-ex-sub').textContent=fmtDate(sess.date)+' — tap weights to edit';
+  renderEditModal();
+  document.getElementById('prog-modal').style.display='flex';
+}
+
+function renderEditModal(){
   const el=document.getElementById('modal-content');el.innerHTML='';
-  sess.exercises.forEach(ex=>{
+
+  // Delete session button
+  const delBtn=document.createElement('button');
+  delBtn.textContent='🗑 Delete this workout';
+  delBtn.style.cssText='width:100%;padding:11px;font-size:14px;font-weight:500;background:var(--red-bg);color:var(--red);border:0.5px solid var(--red);border-radius:var(--radius-sm);cursor:pointer;margin-bottom:14px;font-family:"DM Sans",sans-serif;';
+  delBtn.onclick=()=>{
+    if(confirm('Delete this entire workout? This cannot be undone.')){{
+      workouts.splice(editingWorkoutIdx,1);
+      sv('gt_workouts',workouts);
+      closeModal();
+      renderHistory();
+    }}
+  };
+  el.appendChild(delBtn);
+
+  // Add exercise to this session
+  const addRow=document.createElement('div');
+  addRow.style.cssText='margin-bottom:12px;';
+  addRow.innerHTML=`<input type="text" id="edit-ex-search" placeholder="Add exercise to this session..." autocomplete="off"
+    style="width:100%;padding:10px 12px;font-size:14px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);outline:none;margin-bottom:6px;"
+    oninput="searchEditEx(this.value)">
+  <div id="edit-ex-results" style="max-height:160px;overflow-y:auto;"></div>`;
+  el.appendChild(addRow);
+
+  editingExercises.forEach((ex,ei)=>{
     const block=document.createElement('div');block.className='prog-session';
-    let best=0;
-    const setsHtml=(ex.sets||[]).map((s,i)=>{
-      if(s.w&&s.r){if(parseFloat(s.w)>best)best=parseFloat(s.w);return `<div class="prog-set">Set ${i+1}: ${s.w} lbs × ${s.r} reps</div>`;}
-      return `<div class="prog-set" style="color:var(--text3);">Set ${i+1}: not logged</div>`;
-    }).join('');
-    block.innerHTML=`<div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:8px;">${ex.name}</div>${setsHtml}${best>0?`<div class="prog-best">Best set: ${best} lbs</div>`:''}`;
+    let setsHtml='';
+    (ex.sets||[]).forEach((s,si)=>{
+      const isDropSet=s.note==='drop';const isFailure=s.note==='failure';
+      setsHtml+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <span style="font-size:11px;color:${isDropSet?'var(--amber)':isFailure?'var(--red)':'var(--text3)'};width:44px;font-family:'DM Mono',monospace;flex-shrink:0;">${isDropSet?'Drop':isFailure?'Fail':'Set'} ${si+1}</span>
+        <input type="number" inputmode="decimal" value="${s.w}" placeholder="lbs"
+          style="width:62px;padding:6px 8px;font-size:13px;background:var(--bg4);border:0.5px solid var(--border2);border-radius:6px;color:var(--text);text-align:center;font-family:'DM Mono',monospace;"
+          onchange="updEditSet(${ei},${si},'w',this.value)">
+        <span style="color:var(--text3);font-size:12px;">×</span>
+        <input type="number" inputmode="numeric" value="${s.r}" placeholder="reps"
+          style="width:52px;padding:6px 8px;font-size:13px;background:var(--bg4);border:0.5px solid var(--border2);border-radius:6px;color:var(--text);text-align:center;font-family:'DM Mono',monospace;"
+          onchange="updEditSet(${ei},${si},'r',this.value)">
+        <button onclick="removeEditSet(${ei},${si})" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0 4px;">×</button>
+      </div>`;
+    });
+    block.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="font-size:14px;font-weight:500;color:var(--text);">${ex.name}</div>
+      <button onclick="removeEditEx(${ei})" style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">remove</button>
+    </div>
+    ${setsHtml}
+    <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;">
+      <button onclick="addEditSet(${ei})" style="font-size:11px;color:var(--text2);background:none;border:0.5px dashed var(--border2);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:'DM Sans',sans-serif;">+ set</button>
+      <button onclick="addEditDropSet(${ei})" style="font-size:11px;color:var(--amber);background:none;border:0.5px dashed var(--amber);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:'DM Sans',sans-serif;">+ drop</button>
+    </div>`;
     el.appendChild(block);
   });
-  document.getElementById('prog-modal').style.display='flex';
+
+  // Save changes button
+  const saveBtn=document.createElement('button');
+  saveBtn.textContent='Save changes';
+  saveBtn.style.cssText='width:100%;padding:13px;font-size:15px;font-weight:600;background:var(--green);color:#0a1a12;border:none;border-radius:var(--radius-sm);cursor:pointer;margin-top:10px;font-family:"DM Sans",sans-serif;';
+  saveBtn.onclick=saveEditSession;
+  el.appendChild(saveBtn);
+}
+
+function searchEditEx(val){
+  const q=val.toLowerCase().trim();
+  const el=document.getElementById('edit-ex-results');
+  if(!q){el.innerHTML='';return;}
+  const res=EX.filter(e=>e.n.toLowerCase().includes(q)||e.m.toLowerCase().includes(q)).slice(0,15);
+  el.innerHTML='';
+  res.forEach(ex=>{
+    const div=document.createElement('div');
+    div.style.cssText='padding:8px 10px;cursor:pointer;border-radius:6px;font-size:13px;color:var(--text);';
+    div.textContent=ex.n+' — '+ex.m;
+    div.onmousedown=()=>{
+      editingExercises.push({name:ex.n,muscle:ex.m,sets:[{w:'',r:'',note:'',done:false}]});
+      document.getElementById('edit-ex-search').value='';
+      document.getElementById('edit-ex-results').innerHTML='';
+      renderEditModal();
+    };
+    el.appendChild(div);
+  });
+}
+
+function updEditSet(ei,si,f,v){if(editingExercises[ei]&&editingExercises[ei].sets[si])editingExercises[ei].sets[si][f]=v;}
+function removeEditSet(ei,si){
+  if(editingExercises[ei].sets.length<=1){alert('Need at least one set. Remove the exercise instead.');return;}
+  editingExercises[ei].sets.splice(si,1);renderEditModal();
+}
+function removeEditEx(ei){editingExercises.splice(ei,1);renderEditModal();}
+function addEditSet(ei){editingExercises[ei].sets.push({w:'',r:'',note:'',done:false});renderEditModal();}
+function addEditDropSet(ei){editingExercises[ei].sets.push({w:'',r:'',note:'drop',done:false});renderEditModal();}
+
+function saveEditSession(){
+  if(!editingExercises.length){alert('Add at least one exercise.');return;}
+  workouts[editingWorkoutIdx].exercises=JSON.parse(JSON.stringify(editingExercises));
+  sv('gt_workouts',workouts);
+  closeModal();
+  renderHistory();
+  // brief confirmation
+  const snap=document.createElement('div');
+  snap.textContent='Workout updated ✓';
+  snap.style.cssText='position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--green);color:#0a1a12;padding:10px 20px;border-radius:20px;font-weight:600;font-size:14px;z-index:300;';
+  document.body.appendChild(snap);
+  setTimeout(()=>snap.remove(),2000);
 }
 
 function showExerciseHistory(exName){
