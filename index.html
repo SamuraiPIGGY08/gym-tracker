@@ -165,20 +165,21 @@ canvas{width:100%!important;display:block;}
   </div>
 
   <div id="today-session" style="display:none;">
-    <button class="btn-back" onclick="endSession()">← Back</button>
-    <div class="banner">
-      <div class="banner-greeting" id="sess-title"></div>
+    <button class="btn-back" onclick="confirmEndSession()">← End session</button>
+    <div class="banner" style="padding:14px 16px;">
+      <div class="banner-greeting" id="sess-title" style="font-size:20px;"></div>
       <div class="banner-date" id="sess-date"></div>
+      <div style="margin-top:8px;font-size:12px;color:var(--text3);" id="sess-ex-count">No exercises added yet — search below</div>
     </div>
     <div class="card">
-      <div class="card-title">Add exercises</div>
-      <input type="text" id="ex-search" placeholder="Search exercises..." oninput="searchEx(this.value)">
+      <div class="card-title">Search & add exercises</div>
+      <input type="text" id="ex-search" placeholder="e.g. barbell curl, cable pushdown, abs..." oninput="searchEx(this.value)" autocomplete="off">
       <div class="search-scroll" id="ex-results"></div>
     </div>
     <div id="active-exes"></div>
-    <div style="height:80px;"></div>
+    <div style="height:90px;"></div>
     <div class="finish-bar">
-      <button class="btn-primary" id="finish-btn" onclick="finishSession()">Finish & Save Workout</button>
+      <button class="btn-primary" id="finish-btn" onclick="finishSession()">Save & Finish Workout</button>
     </div>
   </div>
 </div>
@@ -341,17 +342,20 @@ const EX=[
   {n:"Seated Calf Raise",m:"Calves",t:"lower"},
   {n:"Stationary Bike",m:"Cardio",t:"cardio"},
   {n:"Creatine (5g)",m:"Supplement",t:"cardio"},
+  {n:"Cable Reverse Curl",m:"Forearms/Biceps",t:"arms"},
+  {n:"Reverse Curl (barbell)",m:"Forearms/Biceps",t:"arms"},
+  {n:"Wrist Curl",m:"Forearms",t:"arms"},
+  {n:"Reverse Wrist Curl",m:"Forearms",t:"arms"},
+  {n:"Cable Tricep Pushdown (single arm)",m:"Triceps",t:"arms"},
+  {n:"Cable Bicep Curl (single arm)",m:"Biceps",t:"arms"},
+  {n:"Abs Machine",m:"Abs",t:"arms"},
+  {n:"Cable Crunch",m:"Abs",t:"arms"},
+  {n:"Hanging Leg Raise",m:"Abs",t:"arms"},
+  {n:"Plank",m:"Core",t:"arms"},
+  {n:"Decline Sit-up",m:"Abs",t:"arms"},
 ];
 
-const DEFAULTS={
-  "Upper A":["Flat Barbell Bench Press","Incline Dumbbell Press","Cable Chest Fly","Face Pulls","Side Lateral Raise","Seated Cable Row","Lat Pulldown","Barbell Curl","Tricep Pushdown (rope)"],
-  "Upper B":["Barbell Row","Pull-ups","Single-Arm Dumbbell Row","Face Pulls","Side Lateral Raise","Incline Barbell Bench Press","Dumbbell Chest Fly","Hammer Curl","Overhead Tricep Extension"],
-  "Lower A":["Barbell Back Squat","Leg Press","Leg Extension","Romanian Deadlift","Leg Curl (lying)","Standing Calf Raise"],
-  "Lower B":["Stiff-Leg Deadlift","Leg Curl (seated)","Nordic Curl","Hack Squat","Bulgarian Split Squat","Seated Calf Raise"],
-  "Arm Day":["Barbell Curl","Hammer Curl","Preacher Curl","Tricep Pushdown (rope)","Skull Crushers","Overhead Tricep Extension","Barbell Shrug","Dumbbell Shrug"],
-  "Cardio":["Stationary Bike"],
-  "Custom":[]
-};
+// No defaults — every session starts blank
 
 const FOODS=[
   {name:"Ground turkey (4 oz)",cal:190,p:27,c:0,f:9},
@@ -436,14 +440,29 @@ function initToday(){
 }
 
 function startSession(name){
-  curSess={name,date:new Date().toISOString()};activeEx=[];
-  (DEFAULTS[name]||[]).forEach(n=>{const e=EX.find(x=>x.n===n);if(e)addEx(e);});
+  // Blank slate — no presets ever
+  curSess={name,date:new Date().toISOString()};
+  activeEx=[];
   document.getElementById('today-home').style.display='none';
   document.getElementById('today-session').style.display='block';
   document.getElementById('sess-title').textContent=name;
   document.getElementById('sess-date').textContent=dayStr();
   document.getElementById('ex-search').value='';
-  searchEx('');renderActiveEx();
+  document.getElementById('ex-results').innerHTML='';
+  updateSessCount();
+}
+
+function updateSessCount(){
+  const el=document.getElementById('sess-ex-count');
+  if(!el)return;
+  el.textContent=activeEx.length===0?'No exercises added yet':activeEx.length+' exercise'+(activeEx.length>1?'s':'')+' added';
+}
+
+function confirmEndSession(){
+  if(activeEx.length>0){
+    if(!confirm('End session without saving?'))return;
+  }
+  endSession();
 }
 
 function endSession(){
@@ -460,21 +479,36 @@ function getPR(name){
 }
 
 function searchEx(val){
-  const q=val.toLowerCase();
-  const res=q?EX.filter(e=>e.n.toLowerCase().includes(q)||e.m.toLowerCase().includes(q)):EX;
+  const q=val.toLowerCase().trim();
+  if(!q){document.getElementById('ex-results').innerHTML='';return;}
+  const res=EX.filter(e=>e.n.toLowerCase().includes(q)||e.m.toLowerCase().includes(q));
   const el=document.getElementById('ex-results');el.innerHTML='';
-  res.slice(0,25).forEach(ex=>{
+  if(!res.length){
+    el.innerHTML='<div style="padding:10px 12px;font-size:13px;color:var(--text3);">No match — try a muscle name like "bicep" or "tricep"</div>';
+    return;
+  }
+  res.slice(0,30).forEach(ex=>{
     const pr=getPR(ex.n);
+    const already=activeEx.find(e=>e.name===ex.n);
     const div=document.createElement('div');div.className='ex-result';
-    div.innerHTML=`<div class="ex-result-name">${ex.n}${pr?`<span class="pr-badge">PR ${pr}lbs</span>`:''}</div><div class="ex-result-meta">${ex.m}</div>`;
-    div.onclick=()=>{addEx(ex);renderActiveEx();document.getElementById('ex-search').value='';searchEx('');};
+    if(already)div.style.opacity='0.4';
+    div.innerHTML=`<div class="ex-result-name">${ex.n}${pr?`<span class="pr-badge">PR ${pr}lbs</span>`:''}</div><div class="ex-result-meta">${ex.m}${already?' · already added':''}</div>`;
+    div.onclick=()=>{
+      if(already)return;
+      addEx(ex);
+      renderActiveEx();
+      document.getElementById('ex-search').value='';
+      document.getElementById('ex-results').innerHTML='';
+      // scroll to bottom to see new exercise
+      setTimeout(()=>{const ae=document.getElementById('active-exes');if(ae.lastChild)ae.lastChild.scrollIntoView({behavior:'smooth'});},100);
+    };
     el.appendChild(div);
   });
 }
 
 function addEx(ex){
-  if(activeEx.find(e=>e.name===ex.n))return;
-  activeEx.push({name:ex.n,muscle:ex.m,sets:[{w:'',r:'',done:false}]});
+  activeEx.push({name:ex.n,muscle:ex.m,sets:[{w:'',r:'',note:'',done:false}]});
+  updateSessCount();
 }
 
 function renderActiveEx(){
@@ -484,25 +518,42 @@ function renderActiveEx(){
     const d=document.createElement('div');d.className='active-ex';
     let sh='';
     ex.sets.forEach((s,si)=>{
-      sh+=`<div class="set-row">
-        <span class="set-num">Set ${si+1}</span>
-        <input class="set-inp" type="number" inputmode="decimal" placeholder="lbs" value="${s.w}" onchange="updSet(${ei},${si},'w',this.value)" style="width:64px;">
+      const isDropSet=s.note==='drop';
+      sh+=`<div class="set-row" id="setrow-${ei}-${si}">
+        <span class="set-num" style="${isDropSet?'color:var(--amber);':''}">${isDropSet?'Drop':'Set'} ${si+1}</span>
+        <input class="set-inp" type="number" inputmode="decimal" placeholder="lbs" value="${s.w}" onchange="updSet(${ei},${si},'w',this.value)" style="width:62px;">
         <span class="set-x">×</span>
-        <input class="set-inp" type="number" inputmode="numeric" placeholder="reps" value="${s.r}" onchange="updSet(${ei},${si},'r',this.value)" style="width:54px;">
+        <input class="set-inp" type="number" inputmode="numeric" placeholder="${s.note==='failure'?'fail':'reps'}" value="${s.r}" onchange="updSet(${ei},${si},'r',this.value)" style="width:52px;">
         <button class="set-check ${s.done?'done':''}" onclick="togSet(${ei},${si},this)">${s.done?'✓':''}</button>
       </div>`;
     });
     d.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-      <div><div class="active-ex-name">${ex.name}</div><div class="active-ex-sub">${ex.muscle}${pr?' · prev best '+pr+'lbs':' · no history yet'}</div></div>
-      <button class="btn-ghost" onclick="removeEx(${ei})" style="font-size:22px;color:var(--text3);">×</button>
-    </div>${sh}<button class="add-set" onclick="addSet(${ei})">+ add set</button>`;
+      <div style="flex:1;min-width:0;">
+        <div class="active-ex-name">${ex.name}</div>
+        <div class="active-ex-sub">${ex.muscle}${pr?' · prev best '+pr+'lbs':' · no history yet'}</div>
+      </div>
+      <button onclick="removeEx(${ei})" style="background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;padding:0 0 0 10px;flex-shrink:0;">×</button>
+    </div>
+    ${sh}
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+      <button class="add-set" onclick="addSet(${ei})">+ set</button>
+      <button class="add-set" onclick="addDropSet(${ei})" style="color:var(--amber);border-color:var(--amber);">+ drop set</button>
+      <button class="add-set" onclick="addFailureSet(${ei})" style="color:var(--red);border-color:var(--red);">+ to failure</button>
+    </div>`;
     el.appendChild(d);
   });
+  updateSessCount();
 }
 
-function updSet(ei,si,f,v){activeEx[ei].sets[si][f]=v;}
-function togSet(ei,si,btn){activeEx[ei].sets[si].done=!activeEx[ei].sets[si].done;btn.classList.toggle('done');btn.textContent=activeEx[ei].sets[si].done?'✓':'';}
-function addSet(ei){activeEx[ei].sets.push({w:'',r:'',done:false});renderActiveEx();}
+function updSet(ei,si,f,v){if(activeEx[ei]&&activeEx[ei].sets[si])activeEx[ei].sets[si][f]=v;}
+function togSet(ei,si,btn){
+  if(!activeEx[ei]||!activeEx[ei].sets[si])return;
+  activeEx[ei].sets[si].done=!activeEx[ei].sets[si].done;
+  btn.classList.toggle('done');btn.textContent=activeEx[ei].sets[si].done?'✓':'';
+}
+function addSet(ei){activeEx[ei].sets.push({w:'',r:'',note:'',done:false});renderActiveEx();}
+function addDropSet(ei){activeEx[ei].sets.push({w:'',r:'',note:'drop',done:false});renderActiveEx();}
+function addFailureSet(ei){activeEx[ei].sets.push({w:'',r:'failure',note:'failure',done:false});renderActiveEx();}
 function removeEx(ei){activeEx.splice(ei,1);renderActiveEx();}
 
 function finishSession(){
@@ -511,7 +562,7 @@ function finishSession(){
   sv('gt_workouts',workouts);
   const btn=document.getElementById('finish-btn');
   btn.textContent='Saved! 💪';btn.style.background='#2a9e6a';
-  setTimeout(()=>endSession(),1300);
+  setTimeout(()=>endSession(),1400);
 }
 
 // WEIGHT
@@ -662,18 +713,48 @@ function filterFoods(val){
 function renderFoods(q){
   const res=q?FOODS.filter(f=>f.name.toLowerCase().includes(q)):FOODS;
   const el=document.getElementById('food-list');el.innerHTML='';
-  res.forEach((f,i)=>{
+  res.forEach((f)=>{
     const idx=FOODS.indexOf(f);
+    const inputId='qty-'+idx;
     const div=document.createElement('div');div.className='food-item';
-    div.innerHTML=`<div><div class="food-name">${f.name}</div><div class="food-macros">${f.cal} cal · P:${f.p}g · C:${f.c}g · F:${f.f}g</div></div>
-      <button class="food-add" onclick="addFood(${idx})">+ Add</button>`;
+    div.style.flexWrap='wrap';div.style.gap='8px';
+    div.innerHTML=`<div style="flex:1;min-width:0;">
+      <div class="food-name">${f.name}</div>
+      <div class="food-macros" id="preview-${idx}">${f.cal} cal · P:${f.p}g · C:${f.c}g · F:${f.f}g</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+      <input id="${inputId}" type="number" inputmode="decimal" placeholder="qty" value="1" step="0.25" min="0.25"
+        style="width:58px;margin-bottom:0;padding:7px 8px;font-size:13px;text-align:center;"
+        oninput="previewFood(${idx})">
+      <button class="food-add" onclick="addFood(${idx})">Add</button>
+    </div>`;
     el.appendChild(div);
   });
 }
 
+function previewFood(idx){
+  const f=FOODS[idx];
+  const qty=parseFloat(document.getElementById('qty-'+idx).value)||1;
+  const el=document.getElementById('preview-'+idx);
+  if(el) el.textContent=Math.round(f.cal*qty)+' cal · P:'+Math.round(f.p*qty)+'g · C:'+Math.round(f.c*qty)+'g · F:'+Math.round(f.f*qty)+'g';
+}
+
 function addFood(idx){
-  addedFoods.push({...FOODS[idx]});
+  const f=FOODS[idx];
+  const qty=parseFloat(document.getElementById('qty-'+idx).value)||1;
+  const entry={
+    name: qty===1?f.name:f.name+' ×'+qty,
+    cal:Math.round(f.cal*qty),
+    p:Math.round(f.p*qty),
+    c:Math.round(f.c*qty),
+    f:Math.round(f.f*qty)
+  };
+  addedFoods.push(entry);
   sv('gt_foods_today',addedFoods);sv('gt_foods_date',today);
+  // reset qty input
+  const inp=document.getElementById('qty-'+idx);
+  if(inp)inp.value='1';
+  previewFood(idx);
   updateMacros();renderAddedFoods();
 }
 
