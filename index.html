@@ -380,16 +380,19 @@ const FOODS=[
 ];
 
 const SUPPS=[
-  {name:"One-A-Day Men's",dose:"1 tablet",note:"With food — covers zinc, D3, B12, magnesium baseline"},
-  {name:"Fish Oil",dose:"2500mg (EPA 1285mg / DHA 965mg)",note:"With food. Anti-inflammatory, supports joints + heart"},
-  {name:"Lion's Mane",dose:"250mg",note:"With food. Cognitive + nerve support. Stack with Bacopa"},
-  {name:"Citicoline",dose:"500mg",note:"30 min before food ideally. Focus + memory"},
-  {name:"Bacopa Monnieri",dose:"300mg organic",note:"With food. Memory + stress. Takes 4-8 weeks to fully feel"},
-  {name:"Tongkat Ali (LJ100)",dose:"100mg",note:"Morning, empty stomach. Testosterone + energy support"},
-  {name:"CoQ10",dose:"100mg",note:"With fatty meal for best absorption. Energy + heart health"},
-  {name:"Astaxanthin",dose:"6mg (in fish oil)",note:"Antioxidant — already covered by your fish oil"},
-  {name:"Omega-3 EFAs",dose:"3 × 250mg",note:"Additional omega-3/6/9 balance"},
-  {name:"Creatine",dose:"5g",note:"Anytime, any food. Best muscle supplement — take daily"},
+  // MORNING — empty stomach
+  {name:"Tongkat Ali (LJ100)",dose:"100mg",time:"morning",timing:"🌅 Morning — empty stomach",note:"Testosterone + cortisol balance. Take before eating."},
+  {name:"Citicoline",dose:"500mg",time:"morning",timing:"🌅 Morning — 30 min before food",note:"Focus + memory (acetylcholine). Works best fasted."},
+  // WITH BREAKFAST
+  {name:"One-A-Day Men's",dose:"1 tablet",time:"breakfast",timing:"🍳 With breakfast",note:"Covers zinc, D3, B12, magnesium baseline."},
+  {name:"Fish Oil + Astaxanthin",dose:"2500mg fish oil (EPA 1285 / DHA 965) + 6mg astaxanthin — all one pill",time:"breakfast",timing:"🍳 With breakfast",note:"Anti-inflammatory, joints, heart, brain. The 6mg astaxanthin is already in this same pill."},
+  {name:"Omega-3 EFAs",dose:"3 × 250mg",time:"breakfast",timing:"🍳 With breakfast",note:"Additional omega-3/6/9 balance — take alongside fish oil."},
+  {name:"Lion's Mane",dose:"250mg",time:"breakfast",timing:"🍳 With breakfast",note:"Nerve growth + cognition. Stacks well with Bacopa + Citicoline."},
+  {name:"Bacopa Monnieri",dose:"300mg organic",time:"breakfast",timing:"🍳 With breakfast",note:"Memory + stress. Takes 4-8 weeks of daily use to fully kick in."},
+  // WITH MEALS
+  {name:"CoQ10",dose:"100mg",time:"lunch",timing:"🥗 With a fatty meal (lunch or dinner)",note:"Absorbs much better with dietary fat. Energy + heart health."},
+  // ANYTIME
+  {name:"Creatine",dose:"5g",time:"anytime",timing:"⚡ Anytime — any food",note:"Most proven muscle supplement. Consistency matters more than timing."},
 ];
 
 function ld(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
@@ -432,10 +435,13 @@ function initToday(){
   document.getElementById('banner-date').textContent=dayStr();
   const last=workouts[0];
   if(last){
-    document.getElementById('last-session').style.display='block';
+    const box=document.getElementById('last-session');
+    box.style.display='block';
+    box.style.cursor='pointer';
+    box.onclick=()=>{showTab('history');setTimeout(()=>openEditSession(0),100);};
     document.getElementById('last-name').textContent=last.name;
     const exStr=last.exercises.map(e=>e.name).join(', ');
-    document.getElementById('last-detail').textContent=timeAgo(last.date)+' · '+exStr.substring(0,55)+(exStr.length>55?'…':'');
+    document.getElementById('last-detail').textContent=timeAgo(last.date)+' · '+exStr.substring(0,55)+(exStr.length>55?'…':'')+' — tap to view';
   }
 }
 
@@ -511,35 +517,48 @@ function addEx(ex){
   updateSessCount();
 }
 
+// Rep range guidance based on split type
+function getRepRange(muscle){
+  const strength=['Chest','Back','Quads','Hamstrings','Full Body'];
+  const hypertrophy=['Biceps','Triceps','Shoulders','Rear Delt','Side Delt','Calves','Glutes','Traps'];
+  if(strength.includes(muscle)) return '4-8 reps (compounds) · 8-12 reps (accessories)';
+  if(hypertrophy.includes(muscle)) return '10-15 reps';
+  return '8-15 reps';
+}
+
 function renderActiveEx(){
   const el=document.getElementById('active-exes');el.innerHTML='';
   activeEx.forEach((ex,ei)=>{
     const pr=getPR(ex.name);
+    const repGuide=getRepRange(ex.muscle);
     const d=document.createElement('div');d.className='active-ex';
     let sh='';
     ex.sets.forEach((s,si)=>{
       const isDropSet=s.note==='drop';
-      const isFailure=s.note==='failure';
-      sh+=`<div class="set-row" id="setrow-${ei}-${si}">
-        <span class="set-num" style="${isDropSet?'color:var(--amber);':isFailure?'color:var(--red);':''}">${isDropSet?'Drop':isFailure?'Fail':'Set'} ${si+1}</span>
-        <input class="set-inp" type="number" inputmode="decimal" placeholder="lbs" value="${s.w}" onchange="updSet(${ei},${si},'w',this.value)" style="width:62px;">
+      const indent=isDropSet?'margin-left:20px;border-left:2px solid var(--amber);padding-left:10px;':'';
+      sh+=`<div class="set-row" style="${indent}margin-bottom:8px;">
+        <span class="set-num" style="${isDropSet?'color:var(--amber);font-size:11px;':''}width:44px;">${isDropSet?'↳ Drop':'Set'} ${si+1}</span>
+        <input class="set-inp" type="number" inputmode="decimal" placeholder="lbs" value="${s.w}" onchange="updSet(${ei},${si},'w',this.value)" style="width:60px;">
         <span class="set-x">×</span>
-        <input class="set-inp" type="number" inputmode="numeric" placeholder="${isFailure?'reps':'reps'}" value="${s.r}" onchange="updSet(${ei},${si},'r',this.value)" style="width:52px;">
-        <button onclick="removeSet(${ei},${si})" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0 4px;flex-shrink:0;">×</button>
+        <input class="set-inp" type="number" inputmode="numeric" placeholder="reps" value="${s.r}" onchange="updSet(${ei},${si},'r',this.value)" style="width:50px;">
+        <select onchange="updSet(${ei},${si},'rpe',this.value)" style="font-size:11px;background:var(--bg4);border:0.5px solid var(--border2);border-radius:6px;color:${s.rpe&&s.rpe!='0'?'var(--green)':'var(--text3)'};padding:4px 2px;width:52px;-webkit-appearance:none;text-align:center;">
+          <option value="0" ${!s.rpe||s.rpe=='0'?'selected':''}>RPE</option>
+          ${[6,7,8,9,10].map(n=>`<option value="${n}" ${s.rpe==n?'selected':''}>${n}</option>`).join('')}
+        </select>
+        <button onclick="removeSet(${ei},${si})" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0;">×</button>
       </div>`;
     });
-    d.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+    d.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
       <div style="flex:1;min-width:0;">
         <div class="active-ex-name">${ex.name}</div>
-        <div class="active-ex-sub">${ex.muscle}${pr?' · prev best '+pr+'lbs':' · no history yet'}</div>
+        <div class="active-ex-sub">${ex.muscle} · <span style="color:var(--amber);">${repGuide}</span>${pr?' · prev best '+pr+'lbs':''}</div>
       </div>
       <button onclick="removeEx(${ei})" style="background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;padding:0 0 0 10px;flex-shrink:0;">×</button>
     </div>
     ${sh}
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+    <div style="display:flex;gap:8px;margin-top:8px;">
       <button class="add-set" onclick="addSet(${ei})">+ set</button>
-      <button class="add-set" onclick="addDropSet(${ei})" style="color:var(--amber);border-color:var(--amber);">+ drop set</button>
-      <button class="add-set" onclick="addFailureSet(${ei})" style="color:var(--red);border-color:var(--red);">+ to failure</button>
+      <button class="add-set" onclick="addDropSet(${ei})" style="color:var(--amber);border-color:var(--amber);">↳ drop set</button>
     </div>`;
     el.appendChild(d);
   });
@@ -548,9 +567,8 @@ function renderActiveEx(){
 
 function updSet(ei,si,f,v){if(activeEx[ei]&&activeEx[ei].sets[si])activeEx[ei].sets[si][f]=v;}
 function removeSet(ei,si){if(activeEx[ei].sets.length<=1){alert('At least one set required. Remove the exercise instead.');return;}activeEx[ei].sets.splice(si,1);renderActiveEx();}
-function addSet(ei){activeEx[ei].sets.push({w:'',r:'',note:'',done:false});renderActiveEx();}
-function addDropSet(ei){activeEx[ei].sets.push({w:'',r:'',note:'drop',done:false});renderActiveEx();}
-function addFailureSet(ei){activeEx[ei].sets.push({w:'',r:'',note:'failure',done:false});renderActiveEx();}
+function addSet(ei){activeEx[ei].sets.push({w:'',r:'',note:'',rpe:'0',done:false});renderActiveEx();}
+function addDropSet(ei){activeEx[ei].sets.push({w:'',r:'',note:'drop',rpe:'0',done:false});renderActiveEx();}
 function removeEx(ei){activeEx.splice(ei,1);renderActiveEx();}
 
 function finishSession(){
@@ -696,9 +714,10 @@ function renderEditModal(){
     const block=document.createElement('div');block.className='prog-session';
     let setsHtml='';
     (ex.sets||[]).forEach((s,si)=>{
-      const isDropSet=s.note==='drop';const isFailure=s.note==='failure';
-      setsHtml+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-        <span style="font-size:11px;color:${isDropSet?'var(--amber)':isFailure?'var(--red)':'var(--text3)'};width:44px;font-family:'DM Mono',monospace;flex-shrink:0;">${isDropSet?'Drop':isFailure?'Fail':'Set'} ${si+1}</span>
+      const isDropSet=s.note==='drop';
+      const indent=isDropSet?'margin-left:16px;border-left:2px solid var(--amber);padding-left:8px;':'';
+      setsHtml+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;${indent}">
+        <span style="font-size:11px;color:${isDropSet?'var(--amber)':'var(--text3)'};width:50px;font-family:'DM Mono',monospace;flex-shrink:0;">${isDropSet?'↳ Drop':'Set'} ${si+1}</span>
         <input type="number" inputmode="decimal" value="${s.w}" placeholder="lbs"
           style="width:62px;padding:6px 8px;font-size:13px;background:var(--bg4);border:0.5px solid var(--border2);border-radius:6px;color:var(--text);text-align:center;font-family:'DM Mono',monospace;"
           onchange="updEditSet(${ei},${si},'w',this.value)">
@@ -706,6 +725,7 @@ function renderEditModal(){
         <input type="number" inputmode="numeric" value="${s.r}" placeholder="reps"
           style="width:52px;padding:6px 8px;font-size:13px;background:var(--bg4);border:0.5px solid var(--border2);border-radius:6px;color:var(--text);text-align:center;font-family:'DM Mono',monospace;"
           onchange="updEditSet(${ei},${si},'r',this.value)">
+        ${s.rpe&&s.rpe!='0'?`<span style="font-size:11px;color:var(--green);background:var(--green-bg);padding:3px 6px;border-radius:6px;">RPE ${s.rpe}</span>`:''}
         <button onclick="removeEditSet(${ei},${si})" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0 4px;">×</button>
       </div>`;
     });
@@ -889,10 +909,24 @@ function renderAddedFoods(){
 // SUPPLEMENTS
 function renderSupps(){
   const el=document.getElementById('supp-list');el.innerHTML='';
+  let lastTiming='';
   SUPPS.forEach((s,i)=>{
+    if(s.timing!==lastTiming){
+      const hdr=document.createElement('div');
+      hdr.style.cssText='font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;padding:10px 0 6px;border-top:0.5px solid var(--border);margin-top:4px;';
+      if(lastTiming==='')hdr.style.borderTop='none';
+      hdr.textContent=s.timing;
+      el.appendChild(hdr);
+      lastTiming=s.timing;
+    }
     const row=document.createElement('div');row.className='supp-row';
-    row.innerHTML=`<div style="flex:1;padding-right:12px;"><div class="supp-name">${s.name}</div><div class="supp-dose">${s.dose}</div><div class="supp-note">${s.note}</div></div>
-      <button class="supp-check ${suppChecked[i]?'done':''}" onclick="togSupp(${i},this)">${suppChecked[i]?'✓':''}</button>`;
+    row.style.paddingLeft='4px';
+    row.innerHTML=`<div style="flex:1;padding-right:12px;">
+      <div class="supp-name">${s.name}</div>
+      <div class="supp-dose">${s.dose}</div>
+      <div class="supp-note">${s.note}</div>
+    </div>
+    <button class="supp-check ${suppChecked[i]?'done':''}" onclick="togSupp(${i},this)">${suppChecked[i]?'✓':''}</button>`;
     el.appendChild(row);
   });
   const done=suppChecked.filter(Boolean).length;
