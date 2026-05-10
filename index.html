@@ -24,12 +24,12 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;overscroll-behavior:none;}
 body{display:flex;flex-direction:column;}
-.screen{flex:1;overflow-y:auto;padding:16px 16px calc(var(--tab-h) + var(--safe) + 16px);-webkit-overflow-scrolling:touch;}
-.tabbar{position:fixed;bottom:0;left:0;right:0;height:calc(var(--tab-h) + var(--safe));background:rgba(14,14,15,0.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:0.5px solid var(--border);display:flex;align-items:flex-start;padding-top:10px;z-index:100;}
-.tabbar button{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:0;color:var(--text3);transition:color 0.15s;}
+.screen{flex:1;overflow-y:auto;padding:16px 16px 24px;padding-top:calc(var(--tab-h) + env(safe-area-inset-top, 0px) + 8px);-webkit-overflow-scrolling:touch;}
+.tabbar{position:fixed;top:0;left:0;right:0;height:calc(var(--tab-h) + env(safe-area-inset-top,0px));background:rgba(14,14,15,0.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:0.5px solid var(--border);display:flex;align-items:flex-end;padding-bottom:8px;padding-top:env(safe-area-inset-top,0px);z-index:100;}
+.tabbar button{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:0;color:var(--text3);transition:color 0.15s;}
 .tabbar button.active{color:var(--green);}
-.tab-icon{font-size:20px;line-height:1;}
-.tab-label{font-size:10px;font-weight:500;letter-spacing:0.02em;}
+.tab-icon{font-size:18px;line-height:1;}
+.tab-label{font-size:9px;font-weight:500;letter-spacing:0.02em;}
 .section{display:none;}.section.active{display:block;}
 .card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
 .card-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;}
@@ -72,7 +72,7 @@ input::placeholder{color:var(--text3);}
 .set-check{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border2);background:transparent;cursor:pointer;font-size:13px;flex-shrink:0;color:transparent;transition:all 0.15s;}
 .set-check.done{background:var(--green-bg);border-color:var(--green);color:var(--green);}
 .add-set{font-size:12px;color:var(--text2);background:none;border:0.5px dashed var(--border2);border-radius:6px;padding:6px 14px;cursor:pointer;margin-top:6px;font-family:'DM Sans',sans-serif;}
-.finish-bar{position:fixed;bottom:calc(var(--tab-h) + var(--safe));left:0;right:0;background:rgba(14,14,15,0.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:0.5px solid var(--border);padding:10px 16px;z-index:99;}
+.finish-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(14,14,15,0.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:0.5px solid var(--border);padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 10px);z-index:99;}
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
 .stat-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:13px;}
 .stat-lbl{font-size:11px;color:var(--text3);margin-bottom:5px;}
@@ -135,6 +135,8 @@ canvas{width:100%!important;display:block;}
 .prog-best{font-size:12px;font-weight:600;color:var(--green);margin-top:6px;}
 .tip-box{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--text2);line-height:1.5;}
 .tip-box strong{color:var(--text);font-weight:500;}
+.day-toggle{flex:1;padding:8px 4px;font-size:12px;font-weight:500;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);cursor:pointer;color:var(--text2);font-family:'DM Sans',sans-serif;text-align:center;}
+.day-toggle.active{background:var(--green-bg);border-color:var(--green);color:var(--green);}
 </style>
 </head>
 <body>
@@ -316,35 +318,48 @@ canvas{width:100%!important;display:block;}
 
 <!-- PEPTIDES -->
 <div class="section" id="sec-peptides">
+
+  <!-- INFO + CALCULATOR -->
   <div class="card">
-    <div class="card-title">Peptide calculator</div>
+    <div class="card-title">Peptide info & calculator</div>
     <select id="pep-select" onchange="renderPeptideCalc()" style="margin-bottom:10px;">
       <option value="">— Select a peptide —</option>
     </select>
     <div id="pep-info" style="display:none;">
-      <div id="pep-benefits" class="tip-box" style="margin-bottom:10px;"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-        <div class="stat-card"><div class="stat-lbl">Half-life</div><div class="stat-val" id="pep-halflife" style="font-size:16px;"></div></div>
-        <div class="stat-card"><div class="stat-lbl">Frequency</div><div class="stat-val" id="pep-freq" style="font-size:14px;line-height:1.3;"></div></div>
+      <div id="pep-benefits" class="tip-box" style="margin-bottom:10px;font-size:12px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div class="stat-card"><div class="stat-lbl">Half-life</div><div style="font-size:14px;font-weight:500;color:var(--text);margin-top:4px;" id="pep-halflife"></div></div>
+        <div class="stat-card"><div class="stat-lbl">Frequency</div><div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.4;" id="pep-freq"></div></div>
       </div>
-      <div class="card-title" style="margin-top:4px;">Dosing ranges</div>
-      <div id="pep-dosing" style="margin-bottom:12px;"></div>
-      <div class="card-title">Syringe calculator</div>
+      <div class="card-title" style="margin-bottom:8px;">Dosing ranges</div>
+      <div id="pep-dosing" style="margin-bottom:14px;"></div>
+
+      <div class="card-title" style="margin-bottom:8px;">Syringe calculator</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
         <div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Peptide amount (mg)</div>
-          <input type="number" id="pep-mg" placeholder="e.g. 5" step="0.5" oninput="calcUnits()">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Peptide in vial (mg)</div>
+          <input type="number" id="pep-mg" placeholder="e.g. 5" step="0.5" oninput="calcUnits()" style="margin-bottom:0;">
         </div>
         <div>
           <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Bac water added (ml)</div>
-          <input type="number" id="pep-water" placeholder="e.g. 2" step="0.5" oninput="calcUnits()">
+          <input type="number" id="pep-water" placeholder="e.g. 2" step="0.5" oninput="calcUnits()" style="margin-bottom:0;">
         </div>
       </div>
-      <div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Target dose (mcg)</div>
-        <input type="number" id="pep-target" placeholder="e.g. 300" step="50" oninput="calcUnits()">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;align-items:end;">
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Target dose</div>
+          <input type="number" id="pep-target" placeholder="amount" step="any" oninput="calcUnits()" style="margin-bottom:0;">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Unit</div>
+          <select id="pep-unit" onchange="calcUnits()" style="width:80px;margin-bottom:0;">
+            <option value="mcg">mcg</option>
+            <option value="mg">mg</option>
+            <option value="units">units</option>
+          </select>
+        </div>
       </div>
-      <div id="pep-result" style="display:none;background:var(--green-bg);border-radius:var(--radius-sm);padding:12px;margin-top:8px;">
+      <div id="pep-result" style="display:none;background:var(--green-bg);border-radius:var(--radius-sm);padding:12px;margin-top:4px;">
         <div style="font-size:11px;color:var(--green);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Draw this many units</div>
         <div style="font-size:32px;font-weight:600;color:var(--text);font-family:'DM Mono',monospace;" id="pep-units">—</div>
         <div style="font-size:12px;color:var(--text2);margin-top:4px;" id="pep-calc-detail"></div>
@@ -352,17 +367,69 @@ canvas{width:100%!important;display:block;}
     </div>
   </div>
 
-  <div class="card" id="pep-inventory-card">
+  <!-- SCHEDULE / REMINDER -->
+  <div class="card">
+    <div class="card-title">Schedule a peptide</div>
+    <select id="sched-pep" style="margin-bottom:10px;"><option value="">— Select peptide —</option></select>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Dose amount & unit</div>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:10px;">
+      <input type="number" id="sched-dose" placeholder="e.g. 2" step="any" style="margin-bottom:0;">
+      <select id="sched-unit" style="width:80px;margin-bottom:0;">
+        <option value="mg">mg</option>
+        <option value="mcg">mcg</option>
+        <option value="units">units</option>
+      </select>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Frequency</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button id="freq-days-btn" onclick="setFreqMode('days')" style="flex:1;padding:8px;font-size:13px;font-weight:500;background:var(--green);color:#0a1a12;border:none;border-radius:var(--radius-sm);cursor:pointer;font-family:'DM Sans',sans-serif;">Specific days</button>
+      <button id="freq-every-btn" onclick="setFreqMode('every')" style="flex:1;padding:8px;font-size:13px;font-weight:500;background:var(--bg3);color:var(--text2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);cursor:pointer;font-family:'DM Sans',sans-serif;">Every X days</button>
+    </div>
+    <div id="freq-days-section">
+      <div style="display:flex;gap:6px;margin-bottom:10px;justify-content:space-between;">
+        <button class="day-toggle" data-day="SU" onclick="toggleDay(this)">Su</button>
+        <button class="day-toggle" data-day="MO" onclick="toggleDay(this)">Mo</button>
+        <button class="day-toggle" data-day="TU" onclick="toggleDay(this)">Tu</button>
+        <button class="day-toggle" data-day="WE" onclick="toggleDay(this)">We</button>
+        <button class="day-toggle" data-day="TH" onclick="toggleDay(this)">Th</button>
+        <button class="day-toggle" data-day="FR" onclick="toggleDay(this)">Fr</button>
+        <button class="day-toggle" data-day="SA" onclick="toggleDay(this)">Sa</button>
+      </div>
+    </div>
+    <div id="freq-every-section" style="display:none;margin-bottom:10px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Every how many days?</div>
+      <input type="number" id="sched-every" placeholder="e.g. 5" min="1" style="margin-bottom:0;">
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Time of day</div>
+    <input type="time" id="sched-time" value="08:00" style="margin-bottom:10px;">
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Notes (optional)</div>
+    <input type="text" id="sched-notes" placeholder="e.g. before bed, with meal..." style="margin-bottom:10px;">
+    <button onclick="addSchedule()" class="btn-primary" style="margin-top:0;">Add to schedule</button>
+
+    <div id="sched-list" style="margin-top:14px;"></div>
+  </div>
+
+  <!-- INVENTORY -->
+  <div class="card">
     <div class="card-title">Inventory</div>
     <div id="pep-inventory-list"></div>
-    <button onclick="showAddInventory()" style="margin-top:10px;width:100%;padding:10px;font-size:13px;background:none;border:0.5px dashed var(--border2);border-radius:var(--radius-sm);color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;">+ Add to inventory</button>
-    <div id="add-inv-form" style="display:none;margin-top:10px;">
+    <div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border);">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Add vial to inventory</div>
       <select id="inv-pep-name" style="margin-bottom:8px;"><option value="">— Select peptide —</option></select>
-      <input type="number" id="inv-vials" placeholder="Number of vials" style="margin-bottom:8px;">
-      <input type="number" id="inv-mg" placeholder="mg per vial" style="margin-bottom:8px;">
-      <button onclick="addInventory()" class="btn-primary" style="margin-top:0;">Add to inventory</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Number of vials</div>
+          <input type="number" id="inv-vials" placeholder="e.g. 2" style="margin-bottom:0;">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">mg per vial</div>
+          <input type="number" id="inv-mg" placeholder="e.g. 5" step="0.5" style="margin-bottom:0;">
+        </div>
+      </div>
+      <button onclick="addInventory()" class="btn-primary" style="margin-top:0;">+ Add to inventory</button>
     </div>
   </div>
+
 </div>
 
 <!-- PROGRESS MODAL -->
@@ -1487,22 +1554,56 @@ const PEPTIDES=[
       {label:"High",mcg:20000},
     ]
   },
+  {
+    name:"GHK-Cu",
+    halflife:"~1.5-2 hours",
+    freq:"Daily or 5x/week SubQ · Cycle: 30 days on / 14 days off",
+    benefits:"Copper-binding tripeptide naturally found in human plasma. Modulates 4,000+ genes toward regenerative state. Collagen + elastin synthesis, wound healing, anti-inflammatory, antioxidant, hair follicle stimulation. Excellent safety profile. Stacks perfectly with BPC-157 and TB-500.",
+    dosing:[
+      {label:"Low (skin/anti-aging)",mcg:500},
+      {label:"Moderate (healing)",mcg:1000},
+      {label:"High (intensive cycle)",mcg:2000},
+    ]
+  },
+  {
+    name:"Glow Blend (BPC-157 + TB-500 + GHK-Cu)",
+    halflife:"Varies per component",
+    freq:"Daily or 5x/week · Cycle 8-12 weeks",
+    benefits:"Triple healing stack. BPC-157 handles gut and local tissue repair, TB-500 provides systemic healing and reduces inflammation, GHK-Cu drives collagen synthesis and skin regeneration. Combined they cover every angle of recovery and rejuvenation. Popular pre-made blend.",
+    dosing:[
+      {label:"Low (standard blend)",mcg:500},
+      {label:"Moderate",mcg:750},
+      {label:"High",mcg:1000},
+    ]
+  },
+  {
+    name:"BPC-157 / TB-500 Blend",
+    halflife:"BPC ~4-6h · TB-500 ~2 days",
+    freq:"1-2x daily (BPC) · 2x weekly (TB-500) — blend taken 1-2x daily",
+    benefits:"Synergistic healing blend. BPC-157 works locally on gut lining, tendons, ligaments, nerves. TB-500 works systemically to reduce inflammation and speed cell migration. Together they cover both local and systemic healing more effectively than either alone.",
+    dosing:[
+      {label:"Low",mcg:250},
+      {label:"Moderate",mcg:500},
+      {label:"High",mcg:750},
+    ]
+  },
 ];
 
 let pepInventory=ld('gt_pep_inv',[]);
+let pepSchedules=ld('gt_pep_schedules',[]);
+let selectedDays=[];
+let freqMode='days';
 
 function initPeptides(){
-  const sel=document.getElementById('pep-select');
-  sel.innerHTML='<option value="">— Select a peptide —</option>';
-  PEPTIDES.forEach((p,i)=>{
-    const o=document.createElement('option');o.value=i;o.textContent=p.name;sel.appendChild(o);
+  ['pep-select','sched-pep','inv-pep-name'].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(!sel)return;
+    sel.innerHTML='<option value="">— Select peptide —</option>';
+    PEPTIDES.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=p.name;sel.appendChild(o);});
   });
-  // also populate inventory select
-  const invSel=document.getElementById('inv-pep-name');
-  invSel.innerHTML='<option value="">— Select peptide —</option>';
-  PEPTIDES.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=p.name;invSel.appendChild(o);});
   renderPeptideCalc();
   renderInventory();
+  renderSchedules();
 }
 
 function renderPeptideCalc(){
@@ -1519,10 +1620,10 @@ function renderPeptideCalc(){
   p.dosing.forEach(d=>{
     const row=document.createElement('div');
     row.style.cssText='display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);';
-    row.innerHTML=`<span style="font-size:13px;color:var(--text2);">${d.label}</span><span style="font-size:13px;font-weight:500;color:var(--text);font-family:'DM Mono',monospace;">${d.mcg>=1000?(d.mcg/1000)+'mg':d.mcg+'mcg'}</span>`;
+    const dispVal=d.mcg>=1000000?(d.mcg/1000000)+'g':d.mcg>=1000?(d.mcg/1000)+'mg':d.mcg+'mcg';
+    row.innerHTML=`<span style="font-size:13px;color:var(--text2);">${d.label}</span><span style="font-size:13px;font-weight:500;color:var(--text);font-family:'DM Mono',monospace;">${dispVal}</span>`;
     dosingEl.appendChild(row);
   });
-  // clear calc
   document.getElementById('pep-result').style.display='none';
   document.getElementById('pep-mg').value='';
   document.getElementById('pep-water').value='';
@@ -1533,22 +1634,98 @@ function calcUnits(){
   const mg=parseFloat(document.getElementById('pep-mg').value);
   const water=parseFloat(document.getElementById('pep-water').value);
   const target=parseFloat(document.getElementById('pep-target').value);
+  const unit=document.getElementById('pep-unit')?document.getElementById('pep-unit').value:'mcg';
   if(!mg||!water||!target){document.getElementById('pep-result').style.display='none';return;}
-  // concentration = mg/ml = (mg * 1000 mcg) / water ml
+  let targetMcg=target;
+  if(unit==='mg') targetMcg=target*1000;
+  if(unit==='units') targetMcg=target; // units are passed through directly
   const concMcgPerMl=(mg*1000)/water;
-  // 1 unit on insulin syringe = 0.01ml
-  const units=target/concMcgPerMl*100;
+  const units=targetMcg/concMcgPerMl*100;
   document.getElementById('pep-result').style.display='block';
   document.getElementById('pep-units').textContent=units.toFixed(1)+' units';
-  document.getElementById('pep-calc-detail').textContent=
-    `${mg}mg in ${water}ml = ${concMcgPerMl.toFixed(0)}mcg/ml · ${target}mcg ÷ ${concMcgPerMl.toFixed(0)} × 100 = ${units.toFixed(1)} units on syringe`;
+  document.getElementById('pep-calc-detail').textContent=`${mg}mg in ${water}ml = ${concMcgPerMl.toFixed(0)}mcg/ml · ${target}${unit} → draw ${units.toFixed(1)} units on syringe`;
 }
 
-function showAddInventory(){
-  const f=document.getElementById('add-inv-form');
-  f.style.display=f.style.display==='none'?'block':'none';
+// SCHEDULE
+function setFreqMode(mode){
+  freqMode=mode;
+  document.getElementById('freq-days-section').style.display=mode==='days'?'block':'none';
+  document.getElementById('freq-every-section').style.display=mode==='every'?'block':'none';
+  const dBtn=document.getElementById('freq-days-btn');
+  const eBtn=document.getElementById('freq-every-btn');
+  dBtn.style.background=mode==='days'?'var(--green)':'var(--bg3)';
+  dBtn.style.color=mode==='days'?'#0a1a12':'var(--text2)';
+  dBtn.style.border=mode==='days'?'none':'0.5px solid var(--border2)';
+  eBtn.style.background=mode==='every'?'var(--green)':'var(--bg3)';
+  eBtn.style.color=mode==='every'?'#0a1a12':'var(--text2)';
+  eBtn.style.border=mode==='every'?'none':'0.5px solid var(--border2)';
 }
 
+function toggleDay(btn){
+  btn.classList.toggle('active');
+  const day=btn.dataset.day;
+  if(selectedDays.includes(day)) selectedDays=selectedDays.filter(d=>d!==day);
+  else selectedDays.push(day);
+}
+
+const DAY_ORDER=['SU','MO','TU','WE','TH','FR','SA'];
+const DAY_LABELS={SU:'Sun',MO:'Mon',TU:'Tue',WE:'Wed',TH:'Thu',FR:'Fri',SA:'Sat'};
+
+function addSchedule(){
+  const pidx=document.getElementById('sched-pep').value;
+  const dose=parseFloat(document.getElementById('sched-dose').value);
+  const unit=document.getElementById('sched-unit').value;
+  const time=document.getElementById('sched-time').value;
+  const notes=document.getElementById('sched-notes').value.trim();
+  if(!pidx){alert('Select a peptide.');return;}
+  if(!dose){alert('Enter a dose.');return;}
+  let freq={};
+  if(freqMode==='days'){
+    if(!selectedDays.length){alert('Select at least one day.');return;}
+    const sorted=DAY_ORDER.filter(d=>selectedDays.includes(d));
+    freq={type:'days',days:sorted};
+  } else {
+    const every=parseInt(document.getElementById('sched-every').value);
+    if(!every||every<1){alert('Enter interval.');return;}
+    freq={type:'every',interval:every,startDate:new Date().toISOString()};
+  }
+  pepSchedules.push({id:Date.now(),pep:PEPTIDES[pidx].name,dose,unit,time,notes,freq});
+  sv('gt_pep_schedules',pepSchedules);
+  document.getElementById('sched-dose').value='';
+  document.getElementById('sched-notes').value='';
+  document.getElementById('sched-every').value='';
+  selectedDays=[];
+  document.querySelectorAll('.day-toggle').forEach(b=>b.classList.remove('active'));
+  renderSchedules();
+}
+
+function renderSchedules(){
+  const el=document.getElementById('sched-list');
+  if(!el)return;
+  if(!pepSchedules.length){el.innerHTML='';return;}
+  el.innerHTML='<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;padding-top:12px;border-top:0.5px solid var(--border);">Active schedules</div>';
+  pepSchedules.forEach((s,i)=>{
+    const freqStr=s.freq.type==='days'
+      ?s.freq.days.map(d=>DAY_LABELS[d]||d).join(', ')
+      :`Every ${s.freq.interval} days`;
+    const fmt12=t=>{if(!t)return '';const[h,m]=t.split(':');const hr=parseInt(h);return (hr%12||12)+':'+m+(hr<12?'am':'pm');};
+    const row=document.createElement('div');
+    row.style.cssText='background:var(--bg3);border-radius:var(--radius-sm);padding:11px;margin-bottom:8px;';
+    row.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div style="font-size:14px;font-weight:500;color:var(--text);">${s.pep}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px;">${s.dose}${s.unit} · ${freqStr} · ${fmt12(s.time)}</div>
+        ${s.notes?`<div style="font-size:11px;color:var(--text3);margin-top:2px;">${s.notes}</div>`:''}
+      </div>
+      <button onclick="removeSchedule(${i})" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:0;margin-left:8px;">×</button>
+    </div>`;
+    el.appendChild(row);
+  });
+}
+
+function removeSchedule(i){pepSchedules.splice(i,1);sv('gt_pep_schedules',pepSchedules);renderSchedules();}
+
+// INVENTORY
 function addInventory(){
   const pidx=document.getElementById('inv-pep-name').value;
   const vials=parseFloat(document.getElementById('inv-vials').value);
@@ -1558,28 +1735,53 @@ function addInventory(){
   sv('gt_pep_inv',pepInventory);
   document.getElementById('inv-vials').value='';
   document.getElementById('inv-mg').value='';
-  document.getElementById('add-inv-form').style.display='none';
   renderInventory();
 }
 
 function renderInventory(){
   const el=document.getElementById('pep-inventory-list');
-  if(!pepInventory.length){el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">No inventory logged yet.</div>';return;}
+  if(!el)return;
+  if(!pepInventory.length){
+    el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:4px 0 8px;">No inventory logged yet.</div>';
+    return;
+  }
   el.innerHTML='';
   pepInventory.forEach((item,i)=>{
-    const row=document.createElement('div');row.className='wt-row';
-    const totalMg=item.vials*item.mg;
-    row.innerHTML=`<div>
-      <div style="font-size:14px;font-weight:500;color:var(--text);">${item.pep}</div>
-      <div style="font-size:12px;color:var(--text2);">${item.vials} vial${item.vials>1?'s':''} × ${item.mg}mg = <strong>${totalMg}mg total</strong></div>
-      <div style="font-size:11px;color:var(--text3);">Added ${fmtDate(item.date)}</div>
+    const totalMg=(item.vials*item.mg).toFixed(1);
+    const row=document.createElement('div');
+    row.style.cssText='padding:10px 0;border-bottom:0.5px solid var(--border);';
+    row.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div style="font-size:14px;font-weight:500;color:var(--text);">${item.pep}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px;">${item.mg}mg per vial · <span style="color:var(--amber);font-weight:500;">${totalMg}mg total</span></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Added ${fmtDate(item.date)}</div>
+      </div>
+      <button onclick="delInventory(${i})" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;">×</button>
     </div>
-    <button onclick="delInventory(${i})" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;">×</button>`;
+    <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+      <button onclick="updateVials(${i},-1)" style="width:32px;height:32px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:18px;cursor:pointer;font-family:'DM Sans',sans-serif;">−</button>
+      <span style="font-size:18px;font-weight:600;color:var(--text);font-family:'DM Mono',monospace;min-width:24px;text-align:center;">${item.vials}</span>
+      <button onclick="updateVials(${i},1)" style="width:32px;height:32px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:18px;cursor:pointer;font-family:'DM Sans',sans-serif;">+</button>
+      <span style="font-size:13px;color:var(--text2);">vials</span>
+    </div>`;
     el.appendChild(row);
   });
 }
 
-function delInventory(i){pepInventory.splice(i,1);sv('gt_pep_inv',pepInventory);renderInventory();}
+function updateVials(i,delta){
+  pepInventory[i].vials=Math.max(0,+(pepInventory[i].vials+delta).toFixed(1));
+  sv('gt_pep_inv',pepInventory);
+  renderInventory();
+}
+
+function delInventory(i){
+  if(!confirm('Remove from inventory?'))return;
+  pepInventory.splice(i,1);
+  sv('gt_pep_inv',pepInventory);
+  renderInventory();
+}
+
+function showAddInventory(){}
 
 initToday();
 renderFoods('');
