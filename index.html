@@ -221,11 +221,24 @@ canvas{width:100%!important;display:block;}
 <!-- NUTRITION -->
 <div class="section" id="sec-nutrition">
   <div class="stat-grid">
-    <div class="stat-card"><div class="stat-lbl">Calories</div><div><span class="stat-val" id="cal-tot">0</span><span class="stat-unit">/ 2600</span></div></div>
-    <div class="stat-card"><div class="stat-lbl">Protein</div><div><span class="stat-val" id="pro-tot">0</span><span class="stat-unit">g / 200g</span></div></div>
+    <div class="stat-card"><div class="stat-lbl">Calories</div><div><span class="stat-val" id="cal-tot">0</span><span class="stat-unit" id="cal-goal-lbl">/ 2600</span></div></div>
+    <div class="stat-card"><div class="stat-lbl">Protein</div><div><span class="stat-val" id="pro-tot">0</span><span class="stat-unit" id="pro-goal-lbl">g / 200g</span></div></div>
   </div>
   <div class="card">
-    <div class="card-title">Macros</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div class="card-title" style="margin-bottom:0;">Macros</div>
+      <button onclick="toggleGoalEdit()" style="font-size:12px;color:var(--green);background:none;border:0.5px solid var(--green);border-radius:20px;padding:4px 10px;cursor:pointer;font-family:'DM Sans',sans-serif;">Edit goals</button>
+    </div>
+    <div id="goal-edit" style="display:none;background:var(--bg3);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;">Daily targets</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Calories</div><input type="number" id="goal-cal" placeholder="2600" style="margin-bottom:0;"></div>
+        <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Protein (g)</div><input type="number" id="goal-pro" placeholder="200" style="margin-bottom:0;"></div>
+        <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Carbs (g)</div><input type="number" id="goal-carb" placeholder="280" style="margin-bottom:0;"></div>
+        <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Fat (g)</div><input type="number" id="goal-fat" placeholder="75" style="margin-bottom:0;"></div>
+      </div>
+      <button onclick="saveGoals()" style="width:100%;margin-top:10px;padding:10px;font-size:14px;font-weight:600;background:var(--green);color:#0a1a12;border:none;border-radius:var(--radius-sm);cursor:pointer;font-family:'DM Sans',sans-serif;">Save goals</button>
+    </div>
     <div class="macro-bar-wrap"><div class="macro-bar-label"><span>Protein</span><span id="p-lbl">0 / 200g</span></div><div class="macro-bar"><div class="macro-fill" id="p-bar" style="width:0%;background:#4b9cf5;"></div></div></div>
     <div class="macro-bar-wrap"><div class="macro-bar-label"><span>Carbs</span><span id="c-lbl">0 / 280g</span></div><div class="macro-bar"><div class="macro-fill" id="c-bar" style="width:0%;background:#3ecf8e;"></div></div></div>
     <div class="macro-bar-wrap"><div class="macro-bar-label"><span>Fat</span><span id="f-lbl">0 / 75g</span></div><div class="macro-bar"><div class="macro-fill" id="f-bar" style="width:0%;background:#f5a623;"></div></div></div>
@@ -249,11 +262,15 @@ canvas{width:100%!important;display:block;}
     <div id="supp-list"></div>
   </div>
   <div class="card">
-    <div class="card-title">Timing notes</div>
-    <div class="tip-box"><strong>With food:</strong> Fish oil, CoQ10, Astaxanthin, One-A-Day, Lion's Mane, Bacopa</div>
-    <div class="tip-box"><strong>Empty stomach / before food:</strong> Citicoline (30 min before), Tongkat Ali (morning)</div>
-    <div class="tip-box"><strong>Creatine 5g</strong> — anytime, any food. Most proven muscle supplement there is.</div>
-    <div class="tip-box"><strong>Tip:</strong> Weigh yourself every morning fasted for consistent tracking.</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div class="card-title" style="margin-bottom:0;">Add custom supplement</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input type="text" id="custom-supp-name" placeholder="Supplement name..." style="flex:1;min-width:120px;margin-bottom:0;">
+      <input type="text" id="custom-supp-dose" placeholder="Dose (e.g. 500mg)" style="width:110px;margin-bottom:0;">
+    </div>
+    <input type="text" id="custom-supp-timing" placeholder="When to take (e.g. With breakfast)" style="margin-top:8px;margin-bottom:8px;">
+    <button onclick="addCustomSupp()" style="width:100%;padding:10px;font-size:14px;font-weight:500;background:var(--bg3);color:var(--text);border:0.5px solid var(--border2);border-radius:var(--radius-sm);cursor:pointer;font-family:'DM Sans',sans-serif;">+ Add to checklist</button>
   </div>
 </div>
 
@@ -264,8 +281,88 @@ canvas{width:100%!important;display:block;}
   <button onclick="showTab('today')" id="tb-today" class="active"><span class="tab-icon">🏋️</span><span class="tab-label">Today</span></button>
   <button onclick="showTab('weight')" id="tb-weight"><span class="tab-icon">⚖️</span><span class="tab-label">Weight</span></button>
   <button onclick="showTab('history')" id="tb-history"><span class="tab-icon">📋</span><span class="tab-label">History</span></button>
-  <button onclick="showTab('nutrition')" id="tb-nutrition"><span class="tab-icon">🥗</span><span class="tab-label">Nutrition</span></button>
+  <button onclick="showTab('progress')" id="tb-progress"><span class="tab-icon">📈</span><span class="tab-label">Progress</span></button>
+  <button onclick="showTab('nutrition')" id="tb-nutrition"><span class="tab-icon">🥗</span><span class="tab-label">Food</span></button>
   <button onclick="showTab('supps')" id="tb-supps"><span class="tab-icon">💊</span><span class="tab-label">Supps</span></button>
+  <button onclick="showTab('peptides')" id="tb-peptides"><span class="tab-icon">🧬</span><span class="tab-label">Peptides</span></button>
+</div>
+
+<!-- PROGRESS TRACKER -->
+<div class="section" id="sec-progress">
+  <div class="card">
+    <div class="card-title">Exercise progress tracker</div>
+    <input type="text" id="prog-search" placeholder="Search any exercise you've logged..." oninput="searchProgress(this.value)" style="margin-bottom:8px;">
+    <div id="prog-ex-list"></div>
+  </div>
+  <div id="prog-detail" style="display:none;">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div>
+          <div style="font-size:17px;font-weight:600;color:var(--text);" id="prog-ex-title"></div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px;" id="prog-ex-count"></div>
+        </div>
+        <button onclick="closeProgress()" style="background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;">×</button>
+      </div>
+      <div class="stat-grid" style="margin-bottom:12px;">
+        <div class="stat-card"><div class="stat-lbl">All-time PR</div><div><span class="stat-val" id="prog-pr" style="font-size:20px;">—</span><span class="stat-unit">lbs</span></div></div>
+        <div class="stat-card"><div class="stat-lbl">Last session</div><div><span class="stat-val" id="prog-last" style="font-size:20px;">—</span><span class="stat-unit">lbs</span></div></div>
+      </div>
+      <div class="card-title">Best set per session</div>
+      <canvas id="prog-chart" height="160" style="margin-bottom:12px;"></canvas>
+      <div id="prog-sessions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PEPTIDES -->
+<div class="section" id="sec-peptides">
+  <div class="card">
+    <div class="card-title">Peptide calculator</div>
+    <select id="pep-select" onchange="renderPeptideCalc()" style="margin-bottom:10px;">
+      <option value="">— Select a peptide —</option>
+    </select>
+    <div id="pep-info" style="display:none;">
+      <div id="pep-benefits" class="tip-box" style="margin-bottom:10px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div class="stat-card"><div class="stat-lbl">Half-life</div><div class="stat-val" id="pep-halflife" style="font-size:16px;"></div></div>
+        <div class="stat-card"><div class="stat-lbl">Frequency</div><div class="stat-val" id="pep-freq" style="font-size:14px;line-height:1.3;"></div></div>
+      </div>
+      <div class="card-title" style="margin-top:4px;">Dosing ranges</div>
+      <div id="pep-dosing" style="margin-bottom:12px;"></div>
+      <div class="card-title">Syringe calculator</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Peptide amount (mg)</div>
+          <input type="number" id="pep-mg" placeholder="e.g. 5" step="0.5" oninput="calcUnits()">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Bac water added (ml)</div>
+          <input type="number" id="pep-water" placeholder="e.g. 2" step="0.5" oninput="calcUnits()">
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Target dose (mcg)</div>
+        <input type="number" id="pep-target" placeholder="e.g. 300" step="50" oninput="calcUnits()">
+      </div>
+      <div id="pep-result" style="display:none;background:var(--green-bg);border-radius:var(--radius-sm);padding:12px;margin-top:8px;">
+        <div style="font-size:11px;color:var(--green);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Draw this many units</div>
+        <div style="font-size:32px;font-weight:600;color:var(--text);font-family:'DM Mono',monospace;" id="pep-units">—</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px;" id="pep-calc-detail"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="pep-inventory-card">
+    <div class="card-title">Inventory</div>
+    <div id="pep-inventory-list"></div>
+    <button onclick="showAddInventory()" style="margin-top:10px;width:100%;padding:10px;font-size:13px;background:none;border:0.5px dashed var(--border2);border-radius:var(--radius-sm);color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;">+ Add to inventory</button>
+    <div id="add-inv-form" style="display:none;margin-top:10px;">
+      <select id="inv-pep-name" style="margin-bottom:8px;"><option value="">— Select peptide —</option></select>
+      <input type="number" id="inv-vials" placeholder="Number of vials" style="margin-bottom:8px;">
+      <input type="number" id="inv-mg" placeholder="mg per vial" style="margin-bottom:8px;">
+      <button onclick="addInventory()" class="btn-primary" style="margin-top:0;">Add to inventory</button>
+    </div>
+  </div>
 </div>
 
 <!-- PROGRESS MODAL -->
@@ -280,79 +377,154 @@ canvas{width:100%!important;display:block;}
 
 <script>
 const EX=[
+  // ── CHEST ──
   {n:"Flat Barbell Bench Press",m:"Chest",t:"push"},
   {n:"Incline Barbell Bench Press",m:"Chest",t:"push"},
+  {n:"Decline Barbell Bench Press",m:"Chest",t:"push"},
   {n:"Incline Dumbbell Press",m:"Chest",t:"push"},
   {n:"Flat Dumbbell Press",m:"Chest",t:"push"},
   {n:"Decline Dumbbell Press",m:"Chest",t:"push"},
-  {n:"Cable Chest Fly",m:"Chest",t:"push"},
+  {n:"Machine Chest Press (flat)",m:"Chest",t:"push"},
+  {n:"Machine Chest Press (incline)",m:"Chest",t:"push"},
+  {n:"Hammer Strength Chest Press",m:"Chest",t:"push"},
+  {n:"Pec Deck / Chest Fly Machine",m:"Chest",t:"push"},
+  {n:"Cable Chest Fly (low-to-high)",m:"Chest",t:"push"},
+  {n:"Cable Chest Fly (high-to-low)",m:"Chest",t:"push"},
+  {n:"Cable Chest Fly (mid)",m:"Chest",t:"push"},
   {n:"Dumbbell Chest Fly",m:"Chest",t:"push"},
-  {n:"Machine Chest Press",m:"Chest",t:"push"},
-  {n:"Pec Deck",m:"Chest",t:"push"},
   {n:"Dips (chest lean)",m:"Chest",t:"push"},
+  {n:"Landmine Press",m:"Chest",t:"push"},
+  // ── BACK ──
   {n:"Pull-ups",m:"Back",t:"pull"},
+  {n:"Chin-ups",m:"Back",t:"pull"},
+  {n:"Assisted Pull-up Machine",m:"Back",t:"pull"},
   {n:"Barbell Row",m:"Back",t:"pull"},
-  {n:"Seated Cable Row",m:"Back",t:"pull"},
+  {n:"Seated Cable Row (wide grip)",m:"Back",t:"pull"},
+  {n:"Seated Cable Row (close grip)",m:"Back",t:"pull"},
+  {n:"Seated Row Machine",m:"Back",t:"pull"},
   {n:"Single-Arm Dumbbell Row",m:"Back",t:"pull"},
-  {n:"Lat Pulldown",m:"Back",t:"pull"},
+  {n:"Single-Arm Cable Row",m:"Back",t:"pull"},
+  {n:"Lat Pulldown (wide grip)",m:"Back",t:"pull"},
+  {n:"Lat Pulldown (close grip)",m:"Back",t:"pull"},
+  {n:"Lat Pulldown (neutral grip)",m:"Back",t:"pull"},
+  {n:"Lat Pulldown Machine",m:"Back",t:"pull"},
   {n:"T-Bar Row",m:"Back",t:"pull"},
   {n:"Chest-Supported Row",m:"Back",t:"pull"},
+  {n:"Chest-Supported Row Machine",m:"Back",t:"pull"},
+  {n:"Hammer Strength Row",m:"Back",t:"pull"},
+  {n:"Low Row Machine",m:"Back",t:"pull"},
+  {n:"Straight-Arm Pulldown",m:"Back",t:"pull"},
   {n:"Deadlift",m:"Full Body",t:"pull"},
   {n:"Trap Bar Deadlift",m:"Full Body",t:"pull"},
+  {n:"Rack Pull",m:"Back",t:"pull"},
+  // ── SHOULDERS ──
+  {n:"Dumbbell Shoulder Press",m:"Shoulders",t:"shoulders"},
+  {n:"Barbell OHP",m:"Shoulders",t:"shoulders"},
+  {n:"Machine Shoulder Press",m:"Shoulders",t:"shoulders"},
+  {n:"Arnold Press",m:"Shoulders",t:"shoulders"},
+  {n:"Side Lateral Raise",m:"Side Delt",t:"shoulders"},
+  {n:"Cable Lateral Raise",m:"Side Delt",t:"shoulders"},
+  {n:"Lateral Raise Machine",m:"Side Delt",t:"shoulders"},
+  {n:"Cable Lateral Raise (single arm)",m:"Side Delt",t:"shoulders"},
   {n:"Face Pulls",m:"Rear Delt",t:"shoulders"},
   {n:"Rear Delt Fly (cable)",m:"Rear Delt",t:"shoulders"},
   {n:"Rear Delt Fly (dumbbell)",m:"Rear Delt",t:"shoulders"},
-  {n:"Side Lateral Raise",m:"Side Delt",t:"shoulders"},
-  {n:"Cable Lateral Raise",m:"Side Delt",t:"shoulders"},
-  {n:"Dumbbell Shoulder Press",m:"Shoulders",t:"shoulders"},
-  {n:"Barbell OHP",m:"Shoulders",t:"shoulders"},
-  {n:"Arnold Press",m:"Shoulders",t:"shoulders"},
+  {n:"Rear Delt Machine",m:"Rear Delt",t:"shoulders"},
+  {n:"Reverse Pec Deck",m:"Rear Delt",t:"shoulders"},
   {n:"Front Raise",m:"Front Delt",t:"shoulders"},
+  {n:"Cable Front Raise",m:"Front Delt",t:"shoulders"},
+  // ── BICEPS ──
   {n:"Barbell Curl",m:"Biceps",t:"arms"},
   {n:"Dumbbell Curl",m:"Biceps",t:"arms"},
   {n:"Hammer Curl",m:"Biceps",t:"arms"},
   {n:"Incline Dumbbell Curl",m:"Biceps",t:"arms"},
-  {n:"Cable Curl",m:"Biceps",t:"arms"},
-  {n:"Preacher Curl",m:"Biceps",t:"arms"},
+  {n:"Cable Curl (bar)",m:"Biceps",t:"arms"},
+  {n:"Cable Curl (rope)",m:"Biceps",t:"arms"},
+  {n:"Cable Bicep Curl (single arm)",m:"Biceps",t:"arms"},
+  {n:"Preacher Curl (barbell)",m:"Biceps",t:"arms"},
+  {n:"Preacher Curl (dumbbell)",m:"Biceps",t:"arms"},
+  {n:"Preacher Curl Machine",m:"Biceps",t:"arms"},
   {n:"Concentration Curl",m:"Biceps",t:"arms"},
+  {n:"Spider Curl",m:"Biceps",t:"arms"},
+  {n:"Cable Reverse Curl",m:"Forearms/Biceps",t:"arms"},
+  {n:"Reverse Curl (barbell)",m:"Forearms/Biceps",t:"arms"},
+  // ── TRICEPS ──
   {n:"Tricep Pushdown (rope)",m:"Triceps",t:"arms"},
   {n:"Tricep Pushdown (bar)",m:"Triceps",t:"arms"},
-  {n:"Overhead Tricep Extension",m:"Triceps",t:"arms"},
+  {n:"Tricep Pushdown (V-bar)",m:"Triceps",t:"arms"},
+  {n:"Tricep Pushdown (single arm)",m:"Triceps",t:"arms"},
+  {n:"Overhead Tricep Extension (cable)",m:"Triceps",t:"arms"},
+  {n:"Overhead Tricep Extension (dumbbell)",m:"Triceps",t:"arms"},
+  {n:"Overhead Tricep Extension (EZ bar)",m:"Triceps",t:"arms"},
   {n:"Skull Crushers",m:"Triceps",t:"arms"},
   {n:"Close-Grip Bench Press",m:"Triceps",t:"arms"},
+  {n:"Tricep Machine (isolation)",m:"Triceps",t:"arms"},
   {n:"Dips (upright)",m:"Triceps",t:"arms"},
+  {n:"Kickback (dumbbell)",m:"Triceps",t:"arms"},
+  {n:"Kickback (cable)",m:"Triceps",t:"arms"},
+  // ── TRAPS ──
   {n:"Barbell Shrug",m:"Traps",t:"arms"},
   {n:"Dumbbell Shrug",m:"Traps",t:"arms"},
   {n:"Cable Shrug",m:"Traps",t:"arms"},
+  {n:"Machine Shrug",m:"Traps",t:"arms"},
   {n:"Farmer's Carry",m:"Traps/Grip",t:"arms"},
+  // ── FOREARMS ──
+  {n:"Wrist Curl",m:"Forearms",t:"arms"},
+  {n:"Reverse Wrist Curl",m:"Forearms",t:"arms"},
+  {n:"Wrist Roller",m:"Forearms",t:"arms"},
+  // ── QUADS ──
   {n:"Barbell Back Squat",m:"Quads",t:"lower"},
-  {n:"Hack Squat",m:"Quads",t:"lower"},
-  {n:"Leg Press",m:"Quads",t:"lower"},
-  {n:"Leg Extension",m:"Quads",t:"lower"},
-  {n:"Bulgarian Split Squat",m:"Quads/Glutes",t:"lower"},
   {n:"Front Squat",m:"Quads",t:"lower"},
+  {n:"Hack Squat Machine",m:"Quads",t:"lower"},
+  {n:"Leg Press (standard)",m:"Quads",t:"lower"},
+  {n:"Leg Press (isolation / narrow stance)",m:"Quads",t:"lower"},
+  {n:"Leg Press (wide stance)",m:"Quads",t:"lower"},
+  {n:"Leg Extension Machine",m:"Quads",t:"lower"},
+  {n:"Leg Extension (single leg)",m:"Quads",t:"lower"},
+  {n:"Bulgarian Split Squat",m:"Quads/Glutes",t:"lower"},
+  {n:"Lunges (walking)",m:"Quads/Glutes",t:"lower"},
+  {n:"Lunges (stationary)",m:"Quads/Glutes",t:"lower"},
+  {n:"Step-ups",m:"Quads/Glutes",t:"lower"},
+  {n:"Sissy Squat",m:"Quads",t:"lower"},
+  // ── HAMSTRINGS ──
   {n:"Romanian Deadlift",m:"Hamstrings",t:"lower"},
   {n:"Stiff-Leg Deadlift",m:"Hamstrings",t:"lower"},
   {n:"Leg Curl (lying)",m:"Hamstrings",t:"lower"},
   {n:"Leg Curl (seated)",m:"Hamstrings",t:"lower"},
+  {n:"Leg Curl (standing single leg)",m:"Hamstrings",t:"lower"},
   {n:"Nordic Curl",m:"Hamstrings",t:"lower"},
-  {n:"Glute Bridge",m:"Glutes",t:"lower"},
+  {n:"Cable Pull-through",m:"Hamstrings/Glutes",t:"lower"},
+  // ── GLUTES / ABDUCTORS ──
   {n:"Hip Thrust",m:"Glutes",t:"lower"},
+  {n:"Glute Bridge",m:"Glutes",t:"lower"},
+  {n:"Hip Abduction Machine (legs out)",m:"Abductors",t:"lower"},
+  {n:"Hip Adduction Machine (legs closing)",m:"Adductors",t:"lower"},
+  {n:"Cable Hip Abduction",m:"Abductors",t:"lower"},
+  {n:"Cable Hip Adduction",m:"Adductors",t:"lower"},
+  {n:"Donkey Kickback (cable)",m:"Glutes",t:"lower"},
+  {n:"Donkey Kickback (machine)",m:"Glutes",t:"lower"},
+  // ── CALVES ──
   {n:"Standing Calf Raise",m:"Calves",t:"lower"},
   {n:"Seated Calf Raise",m:"Calves",t:"lower"},
-  {n:"Stationary Bike",m:"Cardio",t:"cardio"},
-  {n:"Creatine (5g)",m:"Supplement",t:"cardio"},
-  {n:"Cable Reverse Curl",m:"Forearms/Biceps",t:"arms"},
-  {n:"Reverse Curl (barbell)",m:"Forearms/Biceps",t:"arms"},
-  {n:"Wrist Curl",m:"Forearms",t:"arms"},
-  {n:"Reverse Wrist Curl",m:"Forearms",t:"arms"},
-  {n:"Cable Tricep Pushdown (single arm)",m:"Triceps",t:"arms"},
-  {n:"Cable Bicep Curl (single arm)",m:"Biceps",t:"arms"},
-  {n:"Abs Machine",m:"Abs",t:"arms"},
+  {n:"Leg Press Calf Raise",m:"Calves",t:"lower"},
+  {n:"Single-Leg Calf Raise",m:"Calves",t:"lower"},
+  // ── ABS / CORE ──
+  {n:"Abs Machine (crunch)",m:"Abs",t:"arms"},
   {n:"Cable Crunch",m:"Abs",t:"arms"},
   {n:"Hanging Leg Raise",m:"Abs",t:"arms"},
-  {n:"Plank",m:"Core",t:"arms"},
+  {n:"Hanging Knee Raise",m:"Abs",t:"arms"},
   {n:"Decline Sit-up",m:"Abs",t:"arms"},
+  {n:"Plank",m:"Core",t:"arms"},
+  {n:"Russian Twist",m:"Obliques",t:"arms"},
+  {n:"Cable Woodchop",m:"Obliques",t:"arms"},
+  {n:"Ab Wheel Rollout",m:"Core",t:"arms"},
+  // ── CARDIO ──
+  {n:"Stationary Bike",m:"Cardio",t:"cardio"},
+  {n:"Treadmill",m:"Cardio",t:"cardio"},
+  {n:"Stair Climber",m:"Cardio",t:"cardio"},
+  {n:"Elliptical",m:"Cardio",t:"cardio"},
+  {n:"Rowing Machine",m:"Cardio/Back",t:"cardio"},
+  {n:"Creatine (5g)",m:"Supplement",t:"cardio"},
 ];
 
 // No defaults — every session starts blank
@@ -381,18 +553,15 @@ const FOODS=[
 
 const SUPPS=[
   // MORNING — empty stomach
-  {name:"Tongkat Ali (LJ100)",dose:"100mg",time:"morning",timing:"🌅 Morning — empty stomach",note:"Testosterone + cortisol balance. Take before eating."},
-  {name:"Citicoline",dose:"500mg",time:"morning",timing:"🌅 Morning — 30 min before food",note:"Focus + memory (acetylcholine). Works best fasted."},
+  {name:"Tongkat Ali LJ100",brand:"Double Wood",dose:"100mg (1 capsule)",time:"morning",timing:"🌅 Morning — empty stomach",note:"Patented LJ100 extract, 40% glycosaponins. Testosterone + cortisol balance. Take before eating."},
+  {name:"Citicoline CDP-Choline",brand:"Tahoe Nutritionals",dose:"500mg (1 capsule)",time:"morning",timing:"🌅 Morning — 30 min before food",note:"Therapeutic grade CDP choline. Focus + memory. Works best fasted or 30 min before food."},
   // WITH BREAKFAST
-  {name:"One-A-Day Men's",dose:"1 tablet",time:"breakfast",timing:"🍳 With breakfast",note:"Covers zinc, D3, B12, magnesium baseline."},
-  {name:"Fish Oil + Astaxanthin",dose:"2500mg fish oil (EPA 1285 / DHA 965) + 6mg astaxanthin — all one pill",time:"breakfast",timing:"🍳 With breakfast",note:"Anti-inflammatory, joints, heart, brain. The 6mg astaxanthin is already in this same pill."},
-  {name:"Omega-3 EFAs",dose:"3 × 250mg",time:"breakfast",timing:"🍳 With breakfast",note:"Additional omega-3/6/9 balance — take alongside fish oil."},
-  {name:"Lion's Mane",dose:"250mg",time:"breakfast",timing:"🍳 With breakfast",note:"Nerve growth + cognition. Stacks well with Bacopa + Citicoline."},
-  {name:"Bacopa Monnieri",dose:"300mg organic",time:"breakfast",timing:"🍳 With breakfast",note:"Memory + stress. Takes 4-8 weeks of daily use to fully kick in."},
-  // WITH MEALS
-  {name:"CoQ10",dose:"100mg",time:"lunch",timing:"🥗 With a fatty meal (lunch or dinner)",note:"Absorbs much better with dietary fat. Energy + heart health."},
+  {name:"One-A-Day Men's Multivitamin",brand:"One-A-Day",dose:"1 tablet",time:"breakfast",timing:"🍳 With breakfast",note:"Covers D3, B12, zinc, magnesium baseline. Take with food for absorption."},
+  {name:"Omega-3 Fish Oil Complex",brand:"Arofum (all-in-one softgel × 4)",dose:"4 softgels — Fish Oil 2500mg (EPA 1285 / DHA 965 / Other Omega-3s 250mg) · CoQ10 100mg · Astaxanthin 6mg · Vitamin D3 3000IU · Vitamin K2 MK-7 90mcg",time:"breakfast",timing:"🍳 With breakfast",note:"Everything is in this one pill — CoQ10, Astaxanthin, D3, K2, and full omega-3 spectrum. No separate omega or CoQ10 needed. Take with food for fat-soluble absorption."},
+  {name:"Lion's Mane",brand:"Double Wood",dose:"1000mg (2 capsules per serving)",time:"breakfast",timing:"🍳 With breakfast",note:"USA grown, third-party tested. Nerve growth factor + cognition. Stacks well with Bacopa + Citicoline."},
+  {name:"Bacopa Monnieri",brand:"",dose:"300mg organic",time:"breakfast",timing:"🍳 With breakfast",note:"Memory + stress reduction. Takes 4-8 weeks of consistent daily use to fully kick in. Don't quit early."},
   // ANYTIME
-  {name:"Creatine",dose:"5g",time:"anytime",timing:"⚡ Anytime — any food",note:"Most proven muscle supplement. Consistency matters more than timing."},
+  {name:"Creatine Monohydrate",brand:"",dose:"5g",time:"anytime",timing:"⚡ Anytime — any food",note:"Most proven muscle supplement. Daily consistency beats timing. Mix in water, juice, or shake."},
 ];
 
 function ld(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
@@ -413,15 +582,19 @@ if(foodDate!==today){addedFoods=[];sv('gt_foods_today',addedFoods);sv('gt_foods_
 
 // TABS
 function showTab(t){
-  ['today','weight','history','nutrition','supps'].forEach(id=>{
-    document.getElementById('sec-'+id).classList.toggle('active',id===t);
-    document.getElementById('tb-'+id).classList.toggle('active',id===t);
+  ['today','weight','history','progress','nutrition','supps','peptides'].forEach(id=>{
+    const sec=document.getElementById('sec-'+id);
+    const tb=document.getElementById('tb-'+id);
+    if(sec)sec.classList.toggle('active',id===t);
+    if(tb)tb.classList.toggle('active',id===t);
   });
   document.getElementById('screen').scrollTop=0;
   if(t==='history') renderHistory();
   if(t==='weight') renderWeight();
+  if(t==='progress') initProgress();
   if(t==='nutrition'){renderFoods('');renderAddedFoods();updateMacros();}
   if(t==='supps') renderSupps();
+  if(t==='peptides') initPeptides();
 }
 
 // TODAY
@@ -882,15 +1055,43 @@ function removeFood(i){addedFoods.splice(i,1);sv('gt_foods_today',addedFoods);up
 function clearFoods(){addedFoods=[];sv('gt_foods_today',addedFoods);updateMacros();renderAddedFoods();}
 
 function updateMacros(){
+  const goals=ld('gt_goals',{cal:2600,pro:200,carb:280,fat:75});
   const t=addedFoods.reduce((a,f)=>({cal:a.cal+f.cal,p:a.p+f.p,c:a.c+f.c,f:a.f+f.f}),{cal:0,p:0,c:0,f:0});
   document.getElementById('cal-tot').textContent=t.cal;
   document.getElementById('pro-tot').textContent=t.p;
-  document.getElementById('p-lbl').textContent=t.p+' / 200g';
-  document.getElementById('c-lbl').textContent=t.c+' / 280g';
-  document.getElementById('f-lbl').textContent=t.f+' / 75g';
-  document.getElementById('p-bar').style.width=Math.min(100,t.p/200*100)+'%';
-  document.getElementById('c-bar').style.width=Math.min(100,t.c/280*100)+'%';
-  document.getElementById('f-bar').style.width=Math.min(100,t.f/75*100)+'%';
+  document.getElementById('cal-goal-lbl').textContent='/ '+goals.cal;
+  document.getElementById('pro-goal-lbl').textContent='g / '+goals.pro+'g';
+  document.getElementById('p-lbl').textContent=t.p+' / '+goals.pro+'g';
+  document.getElementById('c-lbl').textContent=t.c+' / '+goals.carb+'g';
+  document.getElementById('f-lbl').textContent=t.f+' / '+goals.fat+'g';
+  document.getElementById('p-bar').style.width=Math.min(100,t.p/goals.pro*100)+'%';
+  document.getElementById('c-bar').style.width=Math.min(100,t.c/goals.carb*100)+'%';
+  document.getElementById('f-bar').style.width=Math.min(100,t.f/goals.fat*100)+'%';
+}
+
+function toggleGoalEdit(){
+  const el=document.getElementById('goal-edit');
+  const showing=el.style.display!=='none';
+  if(!showing){
+    const goals=ld('gt_goals',{cal:2600,pro:200,carb:280,fat:75});
+    document.getElementById('goal-cal').value=goals.cal;
+    document.getElementById('goal-pro').value=goals.pro;
+    document.getElementById('goal-carb').value=goals.carb;
+    document.getElementById('goal-fat').value=goals.fat;
+  }
+  el.style.display=showing?'none':'block';
+}
+
+function saveGoals(){
+  const goals={
+    cal:parseInt(document.getElementById('goal-cal').value)||2600,
+    pro:parseInt(document.getElementById('goal-pro').value)||200,
+    carb:parseInt(document.getElementById('goal-carb').value)||280,
+    fat:parseInt(document.getElementById('goal-fat').value)||75,
+  };
+  sv('gt_goals',goals);
+  document.getElementById('goal-edit').style.display='none';
+  updateMacros();
 }
 
 function renderAddedFoods(){
@@ -907,6 +1108,11 @@ function renderAddedFoods(){
 }
 
 // SUPPLEMENTS
+let customSupps=ld('gt_custom_supps',[]);
+let customSuppChecked=ld('gt_custom_supp_checked',[]);
+const customSuppDate=ld('gt_custom_supp_date','');
+if(customSuppDate!==today){customSuppChecked=new Array(customSupps.length).fill(false);sv('gt_custom_supp_checked',customSuppChecked);sv('gt_custom_supp_date',today);}
+
 function renderSupps(){
   const el=document.getElementById('supp-list');el.innerHTML='';
   let lastTiming='';
@@ -920,27 +1126,202 @@ function renderSupps(){
       lastTiming=s.timing;
     }
     const row=document.createElement('div');row.className='supp-row';
-    row.style.paddingLeft='4px';
     row.innerHTML=`<div style="flex:1;padding-right:12px;">
-      <div class="supp-name">${s.name}</div>
+      <div class="supp-name">${s.name}${s.brand?`<span style="font-size:10px;color:var(--text3);margin-left:6px;">${s.brand}</span>`:''}
+      </div>
       <div class="supp-dose">${s.dose}</div>
       <div class="supp-note">${s.note}</div>
     </div>
     <button class="supp-check ${suppChecked[i]?'done':''}" onclick="togSupp(${i},this)">${suppChecked[i]?'✓':''}</button>`;
     el.appendChild(row);
   });
-  const done=suppChecked.filter(Boolean).length;
+  // Custom supplements
+  if(customSupps.length){
+    const hdr=document.createElement('div');
+    hdr.style.cssText='font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;padding:10px 0 6px;border-top:0.5px solid var(--border);margin-top:4px;';
+    hdr.textContent='Custom supplements';
+    el.appendChild(hdr);
+    customSupps.forEach((s,i)=>{
+      const row=document.createElement('div');row.className='supp-row';
+      row.innerHTML=`<div style="flex:1;padding-right:12px;">
+        <div class="supp-name">${s.name}</div>
+        <div class="supp-dose">${s.dose}</div>
+        ${s.timing?`<div class="supp-note">${s.timing}</div>`:''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="supp-check ${customSuppChecked[i]?'done':''}" onclick="togCustomSupp(${i},this)">${customSuppChecked[i]?'✓':''}</button>
+        <button onclick="removeCustomSupp(${i})" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;">×</button>
+      </div>`;
+      el.appendChild(row);
+    });
+  }
+  const totalDone=suppChecked.filter(Boolean).length+customSuppChecked.filter(Boolean).length;
+  const totalAll=SUPPS.length+customSupps.length;
   const title=document.querySelector('#sec-supps .card-title');
-  if(title)title.textContent=`Daily checklist — ${done}/${SUPPS.length} taken`;
+  if(title)title.textContent=`Daily checklist — ${totalDone}/${totalAll} taken`;
 }
 
 function togSupp(i,btn){
   suppChecked[i]=!suppChecked[i];
   btn.classList.toggle('done');btn.textContent=suppChecked[i]?'✓':'';
   sv('gt_supps_today',suppChecked);sv('gt_supps_date',today);
-  const done=suppChecked.filter(Boolean).length;
-  const title=document.querySelector('#sec-supps .card-title');
-  if(title)title.textContent=`Daily checklist — ${done}/${SUPPS.length} taken`;
+  renderSupps();
+}
+
+function togCustomSupp(i,btn){
+  customSuppChecked[i]=!customSuppChecked[i];
+  sv('gt_custom_supp_checked',customSuppChecked);sv('gt_custom_supp_date',today);
+  renderSupps();
+}
+
+function addCustomSupp(){
+  const name=document.getElementById('custom-supp-name').value.trim();
+  const dose=document.getElementById('custom-supp-dose').value.trim();
+  const timing=document.getElementById('custom-supp-timing').value.trim();
+  if(!name||!dose){alert('Enter a name and dose.');return;}
+  customSupps.push({name,dose,timing});
+  customSuppChecked.push(false);
+  sv('gt_custom_supps',customSupps);
+  sv('gt_custom_supp_checked',customSuppChecked);
+  document.getElementById('custom-supp-name').value='';
+  document.getElementById('custom-supp-dose').value='';
+  document.getElementById('custom-supp-timing').value='';
+  renderSupps();
+}
+
+function removeCustomSupp(i){
+  customSupps.splice(i,1);
+  customSuppChecked.splice(i,1);
+  sv('gt_custom_supps',customSupps);
+  sv('gt_custom_supp_checked',customSuppChecked);
+  renderSupps();
+}
+
+// PROGRESS TRACKER
+function initProgress(){
+  document.getElementById('prog-detail').style.display='none';
+  document.getElementById('prog-search').value='';
+  searchProgress('');
+}
+
+function searchProgress(val){
+  const q=val.toLowerCase().trim();
+  const el=document.getElementById('prog-ex-list');
+  // Get all exercises that have been logged at least once
+  const logged={};
+  workouts.forEach(w=>{
+    w.exercises.forEach(ex=>{
+      const hasSets=(ex.sets||[]).some(s=>s.w);
+      if(hasSets){
+        if(!logged[ex.name])logged[ex.name]={name:ex.name,muscle:ex.m||ex.muscle,count:0,best:0};
+        logged[ex.name].count++;
+        (ex.sets||[]).forEach(s=>{if(s.w)logged[ex.name].best=Math.max(logged[ex.name].best,parseFloat(s.w));});
+      }
+    });
+  });
+  let items=Object.values(logged);
+  if(q) items=items.filter(e=>e.name.toLowerCase().includes(q));
+  items.sort((a,b)=>b.count-a.count);
+  el.innerHTML='';
+  if(!items.length){
+    el.innerHTML=`<div style="font-size:13px;color:var(--text3);padding:12px 0;">${q?'No logged exercises match that search.':'No exercises logged yet — complete a session first!'}</div>`;
+    return;
+  }
+  items.forEach(ex=>{
+    const div=document.createElement('div');
+    div.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--border);cursor:pointer;';
+    div.innerHTML=`<div>
+      <div style="font-size:14px;font-weight:500;color:var(--text);">${ex.name}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:2px;">${ex.count} session${ex.count>1?'s':''} logged</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      ${ex.best>0?`<div style="text-align:right;"><div style="font-size:11px;color:var(--text3);">PR</div><div style="font-size:16px;font-weight:600;color:var(--amber);font-family:'DM Mono',monospace;">${ex.best}lbs</div></div>`:''}
+      <span style="color:var(--text3);font-size:18px;">›</span>
+    </div>`;
+    div.onclick=()=>showExerciseProgress(ex.name);
+    el.appendChild(div);
+  });
+}
+
+function showExerciseProgress(exName){
+  const sessions=workouts.filter(w=>w.exercises.find(e=>e.name===exName)).reverse(); // oldest first for chart
+  document.getElementById('prog-ex-title').textContent=exName;
+  document.getElementById('prog-ex-count').textContent=sessions.length+' sessions logged';
+  document.getElementById('prog-detail').style.display='block';
+  document.getElementById('prog-ex-list').style.display='none';
+  document.querySelector('#sec-progress .card').style.display='none';
+
+  let pr=0,lastBest=0;
+  const chartData=sessions.map(sess=>{
+    const ex=sess.exercises.find(e=>e.name===exName);
+    let best=0;
+    (ex.sets||[]).forEach(s=>{if(s.w)best=Math.max(best,parseFloat(s.w));});
+    pr=Math.max(pr,best);
+    lastBest=best;
+    return {date:sess.date,best};
+  });
+  document.getElementById('prog-pr').textContent=pr>0?pr:'—';
+  document.getElementById('prog-last').textContent=lastBest>0?lastBest:'—';
+
+  // Draw chart
+  const canvas=document.getElementById('prog-chart');
+  const ctx=canvas.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.parentElement.offsetWidth-32||300,H=160;
+  canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';
+  ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);
+  const validData=chartData.filter(d=>d.best>0);
+  if(validData.length>=2){
+    const wts=validData.map(d=>d.best);
+    const mn=Math.min(...wts)-5,mx=Math.max(...wts)+5;
+    const pad={t:10,r:12,b:28,l:46},cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+    const xOf=i=>pad.l+i/(validData.length-1)*cw;
+    const yOf=v=>pad.t+ch-(v-mn)/(mx-mn)*ch;
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;
+    [0,0.5,1].forEach(r=>{
+      const y=pad.t+ch*r,v=(mx-(mx-mn)*r).toFixed(0);
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+      ctx.fillStyle='#555';ctx.font='10px DM Mono,monospace';ctx.textAlign='right';ctx.fillText(v,pad.l-5,y+4);
+    });
+    ctx.beginPath();ctx.moveTo(xOf(0),yOf(validData[0].best));
+    validData.forEach((d,i)=>{if(i>0)ctx.lineTo(xOf(i),yOf(d.best));});
+    ctx.lineTo(xOf(validData.length-1),H-pad.b);ctx.lineTo(xOf(0),H-pad.b);ctx.closePath();
+    const g=ctx.createLinearGradient(0,pad.t,0,H-pad.b);
+    g.addColorStop(0,'rgba(245,166,35,0.2)');g.addColorStop(1,'rgba(245,166,35,0.01)');
+    ctx.fillStyle=g;ctx.fill();
+    ctx.beginPath();ctx.moveTo(xOf(0),yOf(validData[0].best));
+    validData.forEach((d,i)=>{if(i>0)ctx.lineTo(xOf(i),yOf(d.best));});
+    ctx.strokeStyle='#f5a623';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+    validData.forEach((d,i)=>{ctx.beginPath();ctx.arc(xOf(i),yOf(d.best),4,0,Math.PI*2);ctx.fillStyle='#f5a623';ctx.fill();});
+    const step=Math.max(1,Math.floor(validData.length/4));
+    ctx.fillStyle='#555';ctx.font='10px DM Mono,monospace';ctx.textAlign='center';
+    validData.forEach((d,i)=>{if(i===0||i===validData.length-1||i%step===0){const dt=new Date(d.date);ctx.fillText((dt.getMonth()+1)+'/'+(dt.getDate()),xOf(i),H-pad.b+16);}});
+  } else {
+    ctx.fillStyle='#555';ctx.font='13px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText('Log 2+ sessions to see chart',W/2,H/2);
+  }
+
+  // Session list
+  const sessEl=document.getElementById('prog-sessions');sessEl.innerHTML='';
+  [...sessions].reverse().forEach(sess=>{
+    const ex=sess.exercises.find(e=>e.name===exName);
+    const block=document.createElement('div');block.className='prog-session';
+    let best=0;
+    const setsHtml=(ex.sets||[]).filter(s=>s.w||s.r).map((s,i)=>{
+      const isDropSet=s.note==='drop';
+      if(s.w)best=Math.max(best,parseFloat(s.w));
+      return `<div style="font-size:13px;color:var(--text);padding:2px 0;${isDropSet?'padding-left:12px;color:var(--amber);':''}">${isDropSet?'↳ Drop':'Set'} ${i+1}: ${s.w?s.w+' lbs':'—'}${s.r?' × '+s.r+' reps':''}${s.rpe&&s.rpe!='0'?`<span style="font-size:10px;color:var(--green);margin-left:6px;">RPE ${s.rpe}</span>`:''}</div>`;
+    }).join('');
+    block.innerHTML=`<div class="prog-date">${fmtDate(sess.date)} · ${sess.name}</div>${setsHtml}${best>0?`<div class="prog-best">Best: ${best} lbs</div>`:''}`;
+    sessEl.appendChild(block);
+  });
+}
+
+function closeProgress(){
+  document.getElementById('prog-detail').style.display='none';
+  document.getElementById('prog-ex-list').style.display='block';
+  document.querySelector('#sec-progress .card').style.display='block';
+  searchProgress(document.getElementById('prog-search').value||'');
 }
 
 // EXERCISE LIBRARY (in history tab — search for progressive overload)
@@ -959,6 +1340,212 @@ function initHistorySearch(){
   };
   card.insertBefore(inp,card.children[1]);
 }
+
+// ── PEPTIDES ──
+const PEPTIDES=[
+  {
+    name:"BPC-157",
+    halflife:"4-6 hours",
+    freq:"1-2x daily",
+    benefits:"Gut healing, tendon/ligament repair, anti-inflammatory, nerve healing. One of the most versatile healing peptides.",
+    dosing:[
+      {label:"Low (healing support)",mcg:250},
+      {label:"Moderate (injury recovery)",mcg:500},
+      {label:"High (acute injury)",mcg:750},
+    ]
+  },
+  {
+    name:"TB-500 (Thymosin Beta-4)",
+    halflife:"~2 days",
+    freq:"2x per week",
+    benefits:"Systemic healing, reduces inflammation, promotes tissue repair and cell migration. Works synergistically with BPC-157.",
+    dosing:[
+      {label:"Low",mcg:2000},
+      {label:"Moderate",mcg:5000},
+      {label:"High",mcg:10000},
+    ]
+  },
+  {
+    name:"Ipamorelin",
+    halflife:"2 hours",
+    freq:"1-3x daily (before bed ideal)",
+    benefits:"Growth hormone secretagogue. Clean GH pulse with minimal side effects. Sleep quality, fat loss, muscle recovery.",
+    dosing:[
+      {label:"Low",mcg:100},
+      {label:"Moderate",mcg:200},
+      {label:"High",mcg:300},
+    ]
+  },
+  {
+    name:"CJC-1295 (no DAC)",
+    halflife:"30 min",
+    freq:"3x daily or with Ipamorelin",
+    benefits:"GHRH analog — amplifies natural GH pulses. Best stacked with Ipamorelin for synergistic GH release.",
+    dosing:[
+      {label:"Low",mcg:100},
+      {label:"Moderate",mcg:200},
+      {label:"High",mcg:300},
+    ]
+  },
+  {
+    name:"Sermorelin",
+    halflife:"~10-20 min",
+    freq:"Once daily (before bed)",
+    benefits:"GHRH analog. Stimulates pituitary GH release naturally. Milder than CJC. Good for anti-aging and recovery.",
+    dosing:[
+      {label:"Low",mcg:200},
+      {label:"Moderate",mcg:500},
+      {label:"High",mcg:1000},
+    ]
+  },
+  {
+    name:"PT-141 (Bremelanotide)",
+    halflife:"~6-12 hours",
+    freq:"As needed (not daily)",
+    benefits:"Melanocortin receptor agonist. Sexual health and libido. Not hormonal — works through CNS pathway.",
+    dosing:[
+      {label:"Low",mcg:500},
+      {label:"Moderate",mcg:1000},
+      {label:"High",mcg:2000},
+    ]
+  },
+  {
+    name:"Selank",
+    halflife:"~1 hour",
+    freq:"1-3x daily",
+    benefits:"Anxiolytic, nootropic. Reduces anxiety, improves memory and focus. No dependency risk. Good for student/high-stress use.",
+    dosing:[
+      {label:"Low",mcg:250},
+      {label:"Moderate",mcg:500},
+      {label:"High",mcg:750},
+    ]
+  },
+  {
+    name:"Semax",
+    halflife:"~1-2 hours",
+    freq:"1-2x daily (morning)",
+    benefits:"Powerful nootropic. BDNF and ACTH analog. Enhances memory, focus, neuroprotection. Popular with students.",
+    dosing:[
+      {label:"Low",mcg:200},
+      {label:"Moderate",mcg:500},
+      {label:"High",mcg:1000},
+    ]
+  },
+  {
+    name:"DSIP (Delta Sleep Inducing Peptide)",
+    halflife:"~20-30 min",
+    freq:"Before bed",
+    benefits:"Improves deep sleep quality and duration. Reduces cortisol. Works well stacked with Ipamorelin for recovery.",
+    dosing:[
+      {label:"Low",mcg:100},
+      {label:"Moderate",mcg:200},
+      {label:"High",mcg:400},
+    ]
+  },
+  {
+    name:"Epithalon",
+    halflife:"~1 hour",
+    freq:"Cycles: daily for 10-20 days",
+    benefits:"Telomere extension, anti-aging, sleep improvement, antioxidant. Run in cycles rather than continuously.",
+    dosing:[
+      {label:"Low",mcg:5000},
+      {label:"Moderate",mcg:10000},
+      {label:"High",mcg:20000},
+    ]
+  },
+];
+
+let pepInventory=ld('gt_pep_inv',[]);
+
+function initPeptides(){
+  const sel=document.getElementById('pep-select');
+  sel.innerHTML='<option value="">— Select a peptide —</option>';
+  PEPTIDES.forEach((p,i)=>{
+    const o=document.createElement('option');o.value=i;o.textContent=p.name;sel.appendChild(o);
+  });
+  // also populate inventory select
+  const invSel=document.getElementById('inv-pep-name');
+  invSel.innerHTML='<option value="">— Select peptide —</option>';
+  PEPTIDES.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=p.name;invSel.appendChild(o);});
+  renderPeptideCalc();
+  renderInventory();
+}
+
+function renderPeptideCalc(){
+  const idx=document.getElementById('pep-select').value;
+  const info=document.getElementById('pep-info');
+  if(idx===''){info.style.display='none';return;}
+  info.style.display='block';
+  const p=PEPTIDES[idx];
+  document.getElementById('pep-benefits').innerHTML=`<strong>${p.name}:</strong> ${p.benefits}`;
+  document.getElementById('pep-halflife').textContent=p.halflife;
+  document.getElementById('pep-freq').textContent=p.freq;
+  const dosingEl=document.getElementById('pep-dosing');
+  dosingEl.innerHTML='';
+  p.dosing.forEach(d=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);';
+    row.innerHTML=`<span style="font-size:13px;color:var(--text2);">${d.label}</span><span style="font-size:13px;font-weight:500;color:var(--text);font-family:'DM Mono',monospace;">${d.mcg>=1000?(d.mcg/1000)+'mg':d.mcg+'mcg'}</span>`;
+    dosingEl.appendChild(row);
+  });
+  // clear calc
+  document.getElementById('pep-result').style.display='none';
+  document.getElementById('pep-mg').value='';
+  document.getElementById('pep-water').value='';
+  document.getElementById('pep-target').value='';
+}
+
+function calcUnits(){
+  const mg=parseFloat(document.getElementById('pep-mg').value);
+  const water=parseFloat(document.getElementById('pep-water').value);
+  const target=parseFloat(document.getElementById('pep-target').value);
+  if(!mg||!water||!target){document.getElementById('pep-result').style.display='none';return;}
+  // concentration = mg/ml = (mg * 1000 mcg) / water ml
+  const concMcgPerMl=(mg*1000)/water;
+  // 1 unit on insulin syringe = 0.01ml
+  const units=target/concMcgPerMl*100;
+  document.getElementById('pep-result').style.display='block';
+  document.getElementById('pep-units').textContent=units.toFixed(1)+' units';
+  document.getElementById('pep-calc-detail').textContent=
+    `${mg}mg in ${water}ml = ${concMcgPerMl.toFixed(0)}mcg/ml · ${target}mcg ÷ ${concMcgPerMl.toFixed(0)} × 100 = ${units.toFixed(1)} units on syringe`;
+}
+
+function showAddInventory(){
+  const f=document.getElementById('add-inv-form');
+  f.style.display=f.style.display==='none'?'block':'none';
+}
+
+function addInventory(){
+  const pidx=document.getElementById('inv-pep-name').value;
+  const vials=parseFloat(document.getElementById('inv-vials').value);
+  const mg=parseFloat(document.getElementById('inv-mg').value);
+  if(!pidx||!vials||!mg){alert('Fill in all fields.');return;}
+  pepInventory.push({pep:PEPTIDES[pidx].name,vials,mg,date:new Date().toISOString()});
+  sv('gt_pep_inv',pepInventory);
+  document.getElementById('inv-vials').value='';
+  document.getElementById('inv-mg').value='';
+  document.getElementById('add-inv-form').style.display='none';
+  renderInventory();
+}
+
+function renderInventory(){
+  const el=document.getElementById('pep-inventory-list');
+  if(!pepInventory.length){el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">No inventory logged yet.</div>';return;}
+  el.innerHTML='';
+  pepInventory.forEach((item,i)=>{
+    const row=document.createElement('div');row.className='wt-row';
+    const totalMg=item.vials*item.mg;
+    row.innerHTML=`<div>
+      <div style="font-size:14px;font-weight:500;color:var(--text);">${item.pep}</div>
+      <div style="font-size:12px;color:var(--text2);">${item.vials} vial${item.vials>1?'s':''} × ${item.mg}mg = <strong>${totalMg}mg total</strong></div>
+      <div style="font-size:11px;color:var(--text3);">Added ${fmtDate(item.date)}</div>
+    </div>
+    <button onclick="delInventory(${i})" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;">×</button>`;
+    el.appendChild(row);
+  });
+}
+
+function delInventory(i){pepInventory.splice(i,1);sv('gt_pep_inv',pepInventory);renderInventory();}
 
 initToday();
 renderFoods('');
