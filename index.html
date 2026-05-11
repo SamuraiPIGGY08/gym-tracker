@@ -291,8 +291,41 @@ canvas{width:100%!important;display:block;}
 
 <!-- PROGRESS TRACKER -->
 <div class="section" id="sec-progress">
+  <!-- MUSCLE DIAGRAM -->
   <div class="card">
-    <div class="card-title">Exercise progress tracker</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div class="card-title" style="margin-bottom:0;">Muscle map — this week</div>
+      <select id="diagram-range" onchange="renderMuscleDiagram()" style="font-size:12px;padding:4px 8px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;color:var(--text);width:auto;margin-bottom:0;">
+        <option value="7">This week</option>
+        <option value="14">Last 2 weeks</option>
+        <option value="30">Last 30 days</option>
+      </select>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Tap a muscle to see exercises</div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);">
+        <div style="width:12px;height:12px;border-radius:3px;background:#1a2a1a;border:0.5px solid var(--border);"></div>Not hit
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);">
+        <div style="width:12px;height:12px;border-radius:3px;background:#1a3a1a;"></div>1-2x
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);">
+        <div style="width:12px;height:12px;border-radius:3px;background:#2a6a2a;"></div>3-4x
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);">
+        <div style="width:12px;height:12px;border-radius:3px;background:#3ecf8e;"></div>5x+
+      </div>
+    </div>
+    <svg id="muscle-svg" viewBox="0 0 340 420" style="width:100%;max-width:340px;display:block;margin:0 auto;" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="muscle-detail" style="display:none;margin-top:12px;padding:12px;background:var(--bg3);border-radius:var(--radius-sm);">
+      <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px;" id="muscle-detail-name"></div>
+      <div id="muscle-detail-content"></div>
+    </div>
+  </div>
+
+  <!-- EXERCISE SEARCH -->
+  <div class="card">
+    <div class="card-title">Exercise progress — tap to see chart</div>
     <input type="text" id="prog-search" placeholder="Search any exercise you've logged..." oninput="searchProgress(this.value)" style="margin-bottom:8px;">
     <div id="prog-ex-list"></div>
   </div>
@@ -649,19 +682,29 @@ if(foodDate!==today){addedFoods=[];sv('gt_foods_today',addedFoods);sv('gt_foods_
 
 // TABS
 function showTab(t){
+  // Save active session before switching tabs
+  if(curSess && activeEx.length){
+    try{sessionStorage.setItem('gt_active_sess',JSON.stringify({curSess,activeEx}));}catch(e){}
+  }
   ['today','weight','history','progress','nutrition','supps','peptides'].forEach(id=>{
     const sec=document.getElementById('sec-'+id);
     const tb=document.getElementById('tb-'+id);
     if(sec)sec.classList.toggle('active',id===t);
     if(tb)tb.classList.toggle('active',id===t);
   });
-  document.getElementById('screen').scrollTop=0;
+  // Don't reset scroll when returning to an active workout
+  if(!(t==='today' && curSess)) document.getElementById('screen').scrollTop=0;
   if(t==='history') renderHistory();
   if(t==='weight') renderWeight();
   if(t==='progress') initProgress();
   if(t==='nutrition'){renderFoods('');renderAddedFoods();updateMacros();}
   if(t==='supps') renderSupps();
   if(t==='peptides') initPeptides();
+  // Restore session view if returning to Today mid-workout
+  if(t==='today' && curSess){
+    document.getElementById('today-home').style.display='none';
+    document.getElementById('today-session').style.display='block';
+  }
 }
 
 // TODAY
@@ -701,7 +744,25 @@ function startSession(name){
 function updateSessCount(){
   const el=document.getElementById('sess-ex-count');
   if(!el)return;
-  el.textContent=activeEx.length===0?'No exercises added yet':activeEx.length+' exercise'+(activeEx.length>1?'s':'')+' added';
+  el.textContent=activeEx.length===0?'No exercises added yet — search below':activeEx.length+' exercise'+(activeEx.length>1?'s':'')+' added';
+  if(curSess)try{sessionStorage.setItem('gt_active_sess',JSON.stringify({curSess,activeEx}));}catch(e){}
+}
+
+function restoreSession(){
+  try{
+    const saved=sessionStorage.getItem('gt_active_sess');
+    if(!saved)return;
+    const {curSess:cs,activeEx:ae}=JSON.parse(saved);
+    if(!cs||!ae||!ae.length)return;
+    curSess=cs;activeEx=ae;
+    document.getElementById('today-home').style.display='none';
+    document.getElementById('today-session').style.display='block';
+    document.getElementById('sess-title').textContent=cs.name;
+    document.getElementById('sess-date').textContent=dayStr();
+    document.getElementById('ex-search').value='';
+    renderActiveEx();
+    updateSessCount();
+  }catch(e){}
 }
 
 function confirmEndSession(){
@@ -714,7 +775,9 @@ function confirmEndSession(){
 function endSession(){
   document.getElementById('today-home').style.display='block';
   document.getElementById('today-session').style.display='none';
-  curSess=null;activeEx=[];initToday();
+  curSess=null;activeEx=[];
+  try{sessionStorage.removeItem('gt_active_sess');}catch(e){}
+  initToday();
 }
 
 function getPR(name){
@@ -816,6 +879,7 @@ function finishSession(){
   if(!confirm('Save this workout?\n\nYou can edit or delete it from History anytime.'))return;
   workouts.unshift({id:Date.now(),name:curSess.name,date:curSess.date,exercises:JSON.parse(JSON.stringify(activeEx))});
   sv('gt_workouts',workouts);
+  try{sessionStorage.removeItem('gt_active_sess');}catch(e){}
   const btn=document.getElementById('finish-btn');
   btn.textContent='Saved! 💪';btn.style.background='#2a9e6a';
   setTimeout(()=>endSession(),1400);
@@ -1265,9 +1329,196 @@ function removeCustomSupp(i){
 }
 
 // PROGRESS TRACKER
+// MUSCLE DIAGRAM
+const MUSCLE_GROUPS={
+  'Chest':     {label:'Chest',    muscles:['Chest'],                            x:118,y:95, w:104,h:52, rx:14},
+  'Front Delt':{label:'Shoulders',muscles:['Shoulders','Front Delt','Side Delt','Rear Delt'], x:80,y:80,  w:38, h:38, rx:19},
+  'Shoulders_R':{label:'Shoulders',muscles:['Shoulders','Front Delt','Side Delt','Rear Delt'], x:222,y:80, w:38, h:38, rx:19},
+  'Biceps':    {label:'Biceps',   muscles:['Biceps','Forearms','Forearms/Biceps'],x:62,y:130, w:34,h:60, rx:10},
+  'Biceps_R':  {label:'Biceps',   muscles:['Biceps','Forearms','Forearms/Biceps'],x:244,y:130,w:34,h:60, rx:10},
+  'Triceps':   {label:'Triceps',  muscles:['Triceps'],                           x:52,y:128, w:28,h:58, rx:10},
+  'Triceps_R': {label:'Triceps',  muscles:['Triceps'],                           x:260,y:128,w:28,h:58, rx:10},
+  'Abs':       {label:'Abs/Core', muscles:['Abs','Core','Obliques'],             x:118,y:150,w:104,h:68, rx:10},
+  'Back':      {label:'Back',     muscles:['Back','Full Body'],                  x:118,y:90, w:104,h:70, rx:10},
+  'Traps':     {label:'Traps',    muscles:['Traps','Traps/Grip'],               x:138,y:68, w:64,h:28, rx:8},
+  'Quads':     {label:'Quads',    muscles:['Quads','Quads/Glutes'],             x:106,y:225,w:54,h:90, rx:12},
+  'Quads_R':   {label:'Quads',    muscles:['Quads','Quads/Glutes'],             x:180,y:225,w:54,h:90, rx:12},
+  'Hamstrings':{label:'Hamstrings',muscles:['Hamstrings','Hamstrings/Glutes'],  x:106,y:225,w:54,h:90, rx:12},
+  'Hams_R':    {label:'Hamstrings',muscles:['Hamstrings','Hamstrings/Glutes'],  x:180,y:225,w:54,h:90, rx:12},
+  'Glutes':    {label:'Glutes',   muscles:['Glutes','Adductors','Abductors'],   x:118,y:218,w:104,h:52, rx:14},
+  'Calves':    {label:'Calves',   muscles:['Calves'],                           x:106,y:322,w:54,h:75, rx:10},
+  'Calves_R':  {label:'Calves',   muscles:['Calves'],                           x:180,y:322,w:54,h:75, rx:10},
+};
+
+// Simplified SVG body shape paths
+const BODY_SVG_FRONT=`
+  <!-- Head -->
+  <ellipse cx="170" cy="35" rx="28" ry="32" fill="#1e1e21" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  <!-- Neck -->
+  <rect x="158" y="60" width="24" height="18" rx="4" fill="#1e1e21" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  <!-- Torso -->
+  <path d="M90,75 L90,210 Q90,225 106,225 L234,225 Q250,225 250,210 L250,75 Q230,68 210,70 L190,70 Q180,78 170,78 Q160,78 150,70 L130,70 Q110,68 90,75Z" fill="#161618" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <!-- Left arm -->
+  <path d="M90,80 Q68,90 60,120 L55,185 Q54,200 65,200 L80,195 L85,140 L92,105Z" fill="#161618" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <!-- Right arm -->
+  <path d="M250,80 Q272,90 280,120 L285,185 Q286,200 275,200 L260,195 L255,140 L248,105Z" fill="#161618" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <!-- Left forearm -->
+  <path d="M55,185 L50,240 Q50,252 60,252 L72,250 L78,195Z" fill="#161618" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <!-- Right forearm -->
+  <path d="M285,185 L290,240 Q290,252 280,252 L268,250 L262,195Z" fill="#161618" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <!-- Pelvis -->
+  <path d="M106,225 L106,272 Q106,280 115,280 L225,280 Q234,280 234,272 L234,225Z" fill="#161618" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <!-- Left thigh -->
+  <path d="M106,272 L96,360 Q94,374 108,376 L138,376 Q150,374 148,360 L148,272Z" fill="#161618" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <!-- Right thigh -->
+  <path d="M234,272 L244,360 Q246,374 232,376 L202,376 Q190,374 192,360 L192,272Z" fill="#161618" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <!-- Left calf -->
+  <path d="M96,360 L92,410 Q92,418 102,418 L134,418 Q144,418 142,410 L138,360Z" fill="#161618" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <!-- Right calf -->
+  <path d="M244,360 L248,410 Q248,418 238,418 L206,418 Q196,418 198,410 L202,360Z" fill="#161618" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+`;
+
+function getMuscleColor(sets){
+  if(sets===0) return 'rgba(255,255,255,0.04)';
+  if(sets<=2)  return 'rgba(62,207,142,0.2)';
+  if(sets<=4)  return 'rgba(62,207,142,0.5)';
+  return '#3ecf8e';
+}
+function getMuscleStroke(sets){
+  if(sets===0) return 'rgba(255,255,255,0.08)';
+  if(sets<=2)  return 'rgba(62,207,142,0.4)';
+  if(sets<=4)  return 'rgba(62,207,142,0.7)';
+  return '#3ecf8e';
+}
+
+function getMuscleSetCount(muscleNames, days){
+  const cutoff=Date.now()-days*24*3600*1000;
+  let sets=0;
+  workouts.forEach(w=>{
+    if(new Date(w.date).getTime()<cutoff)return;
+    w.exercises.forEach(ex=>{
+      if(muscleNames.some(m=>ex.muscle&&ex.muscle.includes(m))){
+        sets+=(ex.sets||[]).length;
+      }
+    });
+  });
+  return sets;
+}
+
+function renderMuscleDiagram(){
+  const days=parseInt(document.getElementById('diagram-range').value)||7;
+  const svg=document.getElementById('muscle-svg');
+  svg.innerHTML=BODY_SVG_FRONT;
+
+  // Front body muscle overlays
+  const FRONT_MUSCLES=[
+    {id:'chest',   label:'Chest',      muscles:['Chest'],
+      path:'M106,78 Q118,90 130,92 L170,92 Q200,92 210,90 L234,78 L234,148 Q210,158 170,160 Q130,158 106,148Z'},
+    {id:'shoulders',label:'Shoulders', muscles:['Shoulders','Front Delt','Side Delt','Rear Delt'],
+      path:'M86,80 Q96,78 106,78 L106,110 Q96,112 86,108Z M234,78 Q244,78 254,80 L254,108 Q244,112 234,110Z'},
+    {id:'biceps',  label:'Biceps',     muscles:['Biceps','Forearms/Biceps'],
+      path:'M64,118 Q72,110 82,108 L85,170 Q76,172 65,165Z M256,108 Q266,110 274,118 L275,165 Q264,172 255,170Z'},
+    {id:'triceps', label:'Triceps',    muscles:['Triceps'],
+      path:'M56,120 Q64,112 70,112 L72,178 Q60,176 54,170Z M270,112 Q276,112 284,120 L286,170 Q280,176 268,178Z'},
+    {id:'forearms',label:'Forearms',   muscles:['Forearms','Forearms/Biceps'],
+      path:'M54,172 Q62,170 74,178 L70,248 Q60,250 52,244Z M266,178 Q278,170 286,172 L288,244 Q280,250 270,248Z'},
+    {id:'abs',     label:'Abs/Core',   muscles:['Abs','Core','Obliques'],
+      path:'M106,150 L234,150 L234,222 Q210,230 170,232 Q130,230 106,222Z'},
+    {id:'quads',   label:'Quads',      muscles:['Quads','Quads/Glutes'],
+      path:'M108,274 L148,274 L146,370 Q130,376 114,370Z M192,274 L232,274 L226,370 Q210,376 194,370Z'},
+    {id:'adductors',label:'Adductors', muscles:['Adductors','Abductors'],
+      path:'M148,274 L192,274 L192,340 L148,340Z'},
+    {id:'calves',  label:'Calves',     muscles:['Calves'],
+      path:'M100,374 L144,374 L140,416 Q120,420 102,416Z M196,374 L240,374 L238,416 Q220,420 200,416Z'},
+    {id:'traps',   label:'Traps',      muscles:['Traps','Traps/Grip'],
+      path:'M136,68 Q153,72 170,74 Q187,72 204,68 L210,78 Q190,88 170,90 Q150,88 130,78Z'},
+  ];
+
+  FRONT_MUSCLES.forEach(m=>{
+    const sets=getMuscleSetCount(m.muscles,days);
+    const fill=getMuscleColor(sets);
+    const stroke=getMuscleStroke(sets);
+    const el=document.createElementNS('http://www.w3.org/2000/svg','path');
+    el.setAttribute('d',m.path);
+    el.setAttribute('fill',fill);
+    el.setAttribute('stroke',stroke);
+    el.setAttribute('stroke-width','1');
+    el.setAttribute('opacity','0.9');
+    el.style.cursor='pointer';
+    el.addEventListener('click',()=>showMuscleDetail(m.label,m.muscles,days));
+    const title=document.createElementNS('http://www.w3.org/2000/svg','title');
+    title.textContent=`${m.label}: ${sets} sets`;
+    el.appendChild(title);
+    svg.appendChild(el);
+
+    // Label
+    if(sets>0){
+      const bbox=m.path.match(/M(\d+),(\d+)/);
+      if(bbox){
+        const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+        txt.setAttribute('x',170);
+        txt.setAttribute('y',m.id==='chest'?122:m.id==='abs'?188:m.id==='quads'?310:m.id==='calves'?398:100);
+        txt.setAttribute('text-anchor','middle');
+        txt.setAttribute('font-size','9');
+        txt.setAttribute('fill','rgba(255,255,255,0.8)');
+        txt.setAttribute('font-family','DM Sans, sans-serif');
+        txt.setAttribute('pointer-events','none');
+        if(['chest','abs','quads','calves'].includes(m.id)){
+          txt.textContent=`${sets}sets`;
+          svg.appendChild(txt);
+        }
+      }
+    }
+  });
+}
+
+function showMuscleDetail(label,muscleNames,days){
+  const cutoff=Date.now()-days*24*3600*1000;
+  const exMap={};
+  workouts.forEach(w=>{
+    if(new Date(w.date).getTime()<cutoff)return;
+    w.exercises.forEach(ex=>{
+      if(muscleNames.some(m=>ex.muscle&&ex.muscle.includes(m))){
+        if(!exMap[ex.name])exMap[ex.name]={sets:0,best:0,sessions:0};
+        exMap[ex.name].sets+=(ex.sets||[]).length;
+        exMap[ex.name].sessions++;
+        (ex.sets||[]).forEach(s=>{if(s.w)exMap[ex.name].best=Math.max(exMap[ex.name].best,parseFloat(s.w));});
+      }
+    });
+  });
+  const items=Object.entries(exMap).sort((a,b)=>b[1].sets-a[1].sets);
+  const el=document.getElementById('muscle-detail');
+  const nameEl=document.getElementById('muscle-detail-name');
+  const contentEl=document.getElementById('muscle-detail-content');
+  if(!items.length){
+    nameEl.textContent=label+' — not trained this period';
+    contentEl.innerHTML='<div style="font-size:13px;color:var(--text3);">No sets logged. Time to hit it!</div>';
+  } else {
+    const totalSets=items.reduce((a,[,v])=>a+v.sets,0);
+    nameEl.textContent=`${label} — ${totalSets} total sets`;
+    contentEl.innerHTML=items.map(([name,data])=>`
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border);">
+        <div>
+          <div style="font-size:13px;color:var(--text);">${name}</div>
+          <div style="font-size:11px;color:var(--text3);">${data.sessions} session${data.sessions>1?'s':''}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:13px;font-weight:500;color:var(--text);">${data.sets} sets</div>
+          ${data.best>0?`<div style="font-size:11px;color:var(--amber);">PR ${data.best}lbs</div>`:''}
+        </div>
+      </div>`).join('');
+  }
+  el.style.display='block';
+}
+
 function initProgress(){
   document.getElementById('prog-detail').style.display='none';
+  document.getElementById('muscle-detail').style.display='none';
   document.getElementById('prog-search').value='';
+  const card=document.querySelector('#sec-progress .card');
+  if(card)card.style.display='block';
+  document.getElementById('prog-ex-list').style.display='block';
+  renderMuscleDiagram();
   searchProgress('');
 }
 
@@ -1387,7 +1638,7 @@ function showExerciseProgress(exName){
 function closeProgress(){
   document.getElementById('prog-detail').style.display='none';
   document.getElementById('prog-ex-list').style.display='block';
-  document.querySelector('#sec-progress .card').style.display='block';
+  document.querySelectorAll('#sec-progress .card').forEach(c=>c.style.display='block');
   searchProgress(document.getElementById('prog-search').value||'');
 }
 
@@ -1784,6 +2035,7 @@ function delInventory(i){
 function showAddInventory(){}
 
 initToday();
+restoreSession();
 renderFoods('');
 renderAddedFoods();
 updateMacros();
